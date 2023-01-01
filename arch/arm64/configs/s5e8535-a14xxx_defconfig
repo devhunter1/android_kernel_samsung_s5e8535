@@ -7209,13 +7209,6 @@ CONFIG_PDIC_S2MF301=m
 CONFIG_S2MF301_PDIC_TRY_SNK=y
 
 #
-# samsung Performace manager
-#
-CONFIG_KPERFMON=y
-CONFIG_KPERFMON_BUILD=m
-# end of samsung Performace manager
-
-#
 # USB TypeC Manager configs
 #
 CONFIG_USB_TYPEC_MANAGER_NOTIFIER=m
