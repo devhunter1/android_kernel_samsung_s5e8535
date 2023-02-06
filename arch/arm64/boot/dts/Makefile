@@ -171,7 +171,7 @@ dtb-y += qcom/msm8998-asus-novago-tp370ql.dtb
 
 targets += dtbs
 DTB_LIST  := $(dtb-y) $(dtbo-y)
-always    := $(DTB_LIST)
+always-y  := $(DTB_LIST)
 
 dtbs: $(addprefix $(obj)/, $(DTB_LIST))
 
