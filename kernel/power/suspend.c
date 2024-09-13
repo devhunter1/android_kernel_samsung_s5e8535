@@ -31,6 +31,11 @@
 #include <linux/compiler.h>
 #include <linux/moduleparam.h>
 #include <linux/wakeup_reason.h>
+#include <linux/sec_debug.h>
+#if IS_ENABLED(CONFIG_SEC_PM_DEBUG)
+#include <linux/rtc.h>
+#include <linux/regulator/machine.h>
+#endif
 
 #include "power.h"
 
@@ -406,6 +411,11 @@ static int suspend_enter(suspend_state_t state, bool *wakeup)
 					 suspend_stats.failed_devs[last_dev]);
 		goto Platform_finish;
 	}
+
+#if IS_ENABLED(CONFIG_SEC_PM_DEBUG)
+	regulator_show_enabled();
+#endif /* CONFIG_SEC_PM_DEBUG */
+
 	error = platform_suspend_prepare_late(state);
 	if (error)
 		goto Devices_early_resume;
@@ -608,6 +618,20 @@ static int enter_state(suspend_state_t state)
 	return error;
 }
 
+#if IS_ENABLED(CONFIG_SEC_PM_DEBUG)
+static void pm_suspend_marker(char *annotation)
+{
+	struct timespec64 ts;
+	struct rtc_time tm;
+
+	ktime_get_real_ts64(&ts);
+	rtc_time64_to_tm(ts.tv_sec, &tm);
+	pr_info("suspend %s %d-%02d-%02d %02d:%02d:%02d.%09lu UTC\n",
+		annotation, tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday,
+		tm.tm_hour, tm.tm_min, tm.tm_sec, ts.tv_nsec);
+}
+#endif
+
 /**
  * pm_suspend - Externally visible function for suspending the system.
  * @state: System sleep state to enter.
@@ -622,7 +646,12 @@ int pm_suspend(suspend_state_t state)
 	if (state <= PM_SUSPEND_ON || state >= PM_SUSPEND_MAX)
 		return -EINVAL;
 
+#if IS_ENABLED(CONFIG_SEC_PM_DEBUG)
+	pm_suspend_marker("entry");
+#else
 	pr_info("suspend entry (%s)\n", mem_sleep_labels[state]);
+#endif /* CONFIG_SEC_PM_DEBUG */
+	secdbg_base_built_set_task_in_pm_suspend(current);
 	error = enter_state(state);
 	if (error) {
 		suspend_stats.fail++;
@@ -630,7 +659,12 @@ int pm_suspend(suspend_state_t state)
 	} else {
 		suspend_stats.success++;
 	}
+	secdbg_base_built_set_task_in_pm_suspend(NULL);
+#if IS_ENABLED(CONFIG_SEC_PM_DEBUG)
+	pm_suspend_marker("exit");
+#else
 	pr_info("suspend exit\n");
+#endif
 	return error;
 }
 EXPORT_SYMBOL(pm_suspend);

@@ -1496,6 +1496,11 @@ struct task_struct {
 	int				mce_count;
 #endif
 	ANDROID_VENDOR_DATA_ARRAY(1, 64);
+
+	/*
+	 * [0] : ssdbg_wait.type	// CONFIG_SEC_DEBUG_DTASK
+	 * [1] : ssdbg_wait.data	// CONFIG_SEC_DEBUG_DTASK
+	 */
 	ANDROID_OEM_DATA_ARRAY(1, 6);
 
 #ifdef CONFIG_KRETPROBES
@@ -1829,7 +1834,9 @@ current_restore_flags(unsigned long orig_flags, unsigned long flags)
 }
 
 extern int cpuset_cpumask_can_shrink(const struct cpumask *cur, const struct cpumask *trial);
-extern int task_can_attach(struct task_struct *p, const struct cpumask *cs_effective_cpus);
+extern int task_can_attach(struct task_struct *p);
+extern int dl_bw_alloc(int cpu, u64 dl_bw);
+extern void dl_bw_free(int cpu, u64 dl_bw);
 
 #ifdef CONFIG_RT_SOFTINT_OPTIMIZATION
 extern bool cpupri_check_rt(void);

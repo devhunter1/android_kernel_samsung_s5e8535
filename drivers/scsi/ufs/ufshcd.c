@@ -51,7 +51,7 @@
 #define QUERY_REQ_TIMEOUT 1500 /* 1.5 seconds */
 
 /* Task management command timeout */
-#define TM_CMD_TIMEOUT	100 /* msecs */
+#define TM_CMD_TIMEOUT	300 /* msecs */
 
 /* maximum number of retries for a general UIC command  */
 #define UFS_UIC_COMMAND_RETRIES 3
@@ -85,6 +85,9 @@
 
 #define wlun_dev_to_hba(dv) shost_priv(to_scsi_device(dv)->host)
 
+/* Maximum number that the hardware allows for request. */
+#define UFSHCD_MAX_HW_SECTORS 2048 /* 1 MB */
+
 #define ufshcd_toggle_vreg(_dev, _vreg, _on)				\
 	({                                                              \
 		int _ret;                                               \
@@ -101,6 +104,18 @@
 		       __len > 4 ? DUMP_PREFIX_OFFSET : DUMP_PREFIX_NONE,\
 		       16, 4, buf, __len, false);                        \
 } while (0)
+
+#undef START_STOP_TIMEOUT
+#define START_STOP_TIMEOUT            (10 * HZ)
+
+/*
+ * ANDROID: this mutex is used to serialize devfreq and sysfs write booster
+ * toggling, it was taken out of struct ufs_hba from commit b03f7ed9af6e ("scsi:
+ * ufs: core: Fix devfreq deadlocks") and made static here in order to preserve
+ * the ABI.
+ * Bug: 286803489
+*/
+static DEFINE_MUTEX(wb_mutex);
 
 int ufshcd_dump_regs(struct ufs_hba *hba, size_t offset, size_t len,
 		     const char *prefix)
@@ -1207,12 +1222,14 @@ static int ufshcd_clock_scaling_prepare(struct ufs_hba *hba)
 	 * clock scaling is in progress
 	 */
 	ufshcd_scsi_block_requests(hba);
+	mutex_lock(&wb_mutex);
 	down_write(&hba->clk_scaling_lock);
 
 	if (!hba->clk_scaling.is_allowed ||
 	    ufshcd_wait_for_doorbell_clr(hba, DOORBELL_CLR_TOUT_US)) {
 		ret = -EBUSY;
 		up_write(&hba->clk_scaling_lock);
+		mutex_unlock(&wb_mutex);
 		ufshcd_scsi_unblock_requests(hba);
 		goto out;
 	}
@@ -1224,17 +1241,15 @@ out:
 	return ret;
 }
 
-static void ufshcd_clock_scaling_unprepare(struct ufs_hba *hba, bool writelock)
+static void ufshcd_clock_scaling_unprepare(struct ufs_hba *hba, int err, bool scale_up)
 {
-	/* Enable Write Booster if we have scaled up else disable it */
-	if (ufshcd_enable_wb_if_scaling_up(hba)) {
-		if (writelock)
-			up_write(&hba->clk_scaling_lock);
-		else
-			up_read(&hba->clk_scaling_lock);
+	up_write(&hba->clk_scaling_lock);
 
-		ufshcd_wb_toggle(hba, writelock);
-	}
+	/* Enable Write Booster if we have scaled up else disable it */
+	if (ufshcd_enable_wb_if_scaling_up(hba) && !err)
+		ufshcd_wb_toggle(hba, scale_up);
+
+	mutex_unlock(&wb_mutex);
 
 	ufshcd_scsi_unblock_requests(hba);
 	ufshcd_release(hba);
@@ -1252,7 +1267,6 @@ static void ufshcd_clock_scaling_unprepare(struct ufs_hba *hba, bool writelock)
 static int ufshcd_devfreq_scale(struct ufs_hba *hba, bool scale_up)
 {
 	int ret = 0;
-	bool is_writelock = true;
 
 	ret = ufshcd_clock_scaling_prepare(hba);
 	if (ret)
@@ -1281,13 +1295,8 @@ static int ufshcd_devfreq_scale(struct ufs_hba *hba, bool scale_up)
 		}
 	}
 
-	/* Enable Write Booster if we have scaled up else disable it */
-	downgrade_write(&hba->clk_scaling_lock);
-	is_writelock = false;
-	ufshcd_wb_toggle(hba, scale_up);
-
 out_unprepare:
-	ufshcd_clock_scaling_unprepare(hba, is_writelock);
+	ufshcd_clock_scaling_unprepare(hba, ret, scale_up);
 	return ret;
 }
 
@@ -4490,7 +4499,7 @@ static int ufshcd_complete_dev_init(struct ufs_hba *hba)
 					QUERY_FLAG_IDN_FDEVICEINIT, 0, &flag_res);
 		if (!flag_res)
 			break;
-		usleep_range(500, 1000);
+		usleep_range(5000, 10000);
 	} while (ktime_before(ktime_get(), timeout));
 
 	if (err) {
@@ -4780,7 +4789,7 @@ link_startup:
 		 * but we can't be sure if the link is up until link startup
 		 * succeeds. So reset the local Uni-Pro and try again.
 		 */
-		if (ret && ufshcd_hba_enable(hba)) {
+		if (ret && retries && ufshcd_hba_enable(hba)) {
 			ufshcd_update_evt_hist(hba,
 					       UFS_EVT_LINK_STARTUP_FAIL,
 					       (u32)ret);
@@ -4859,8 +4868,10 @@ static int ufshcd_verify_dev_init(struct ufs_hba *hba)
 	mutex_unlock(&hba->dev_cmd.lock);
 	ufshcd_release(hba);
 
-	if (err)
+	if (err) {
 		dev_err(hba->dev, "%s: NOP OUT failed %d\n", __func__, err);
+		ufshcd_print_evt_hist(hba);
+	}
 	return err;
 }
 
@@ -5232,9 +5243,11 @@ int ufshcd_transfer_rsp_status(struct ufs_hba *hba, struct ufshcd_lrb *lrbp)
 			 */
 			if (!hba->pm_op_in_progress &&
 			    !ufshcd_eh_in_progress(hba) &&
-			    ufshcd_is_exception_event(lrbp->ucd_rsp_ptr))
+			    ufshcd_is_exception_event(lrbp->ucd_rsp_ptr)) {
 				/* Flushed in suspend */
 				schedule_work(&hba->eeh_work);
+				dev_info(hba->dev, "exception event reported\n");
+			}
 
 			if (scsi_status == SAM_STAT_GOOD)
 				ufshpb_rsp_upiu(hba, lrbp);
@@ -5717,9 +5730,14 @@ static void ufshcd_bkops_exception_event_handler(struct ufs_hba *hba)
 	if (curr_status < BKOPS_STATUS_PERF_IMPACT) {
 		dev_err(hba->dev, "%s: device raised urgent BKOPS exception for bkops status %d\n",
 				__func__, curr_status);
-		/* update the current status as the urgent bkops level */
-		hba->urgent_bkops_lvl = curr_status;
-		hba->is_urgent_bkops_lvl_checked = true;
+		/*
+		 * SEC does not follow this policy that BKOPS is enabled for these events
+		 * update the current status as the urgent bkops level
+		 */
+		//hba->urgent_bkops_lvl = curr_status;
+		//hba->is_urgent_bkops_lvl_checked = true;
+
+		goto out;
 	}
 
 enable_auto_bkops:
@@ -6030,9 +6048,11 @@ static void ufshcd_force_error_recovery(struct ufs_hba *hba)
 
 static void ufshcd_clk_scaling_allow(struct ufs_hba *hba, bool allow)
 {
+	mutex_lock(&wb_mutex);
 	down_write(&hba->clk_scaling_lock);
 	hba->clk_scaling.is_allowed = allow;
 	up_write(&hba->clk_scaling_lock);
+	mutex_unlock(&wb_mutex);
 }
 
 static void ufshcd_clk_scaling_suspend(struct ufs_hba *hba, bool suspend)
@@ -6148,6 +6168,9 @@ static bool ufshcd_is_pwr_mode_restore_needed(struct ufs_hba *hba)
 
 	ufshcd_dme_get(hba, UIC_ARG_MIB(PA_PWRMODE), &mode);
 
+	dev_info(hba->dev, "%s : mode = 0x%x, pwr_rx = %d, pwr_tx = %d\n",
+			__func__, mode, pwr_info->pwr_rx, pwr_info->pwr_tx);
+
 	if (pwr_info->pwr_rx != ((mode >> PWRMODE_RX_OFFSET) & PWRMODE_MASK))
 		return true;
 
@@ -6227,6 +6250,12 @@ static void ufshcd_err_handler(struct work_struct *work)
 			ufshcd_print_trs(hba, hba->outstanding_reqs, pr_prdt);
 		spin_lock_irqsave(hba->host->host_lock, flags);
 	}
+
+	/*
+	 * silent ufs dump when occurred ah8 error for debug
+	 */
+	if (ufshcd_is_link_broken(hba) && (hba->saved_err & UIC_ERROR))
+		ufshcd_print_evt_hist(hba);
 
 	/*
 	 * if host reset is required then skip clearing the pending
@@ -6479,6 +6508,8 @@ static irqreturn_t ufshcd_check_errors(struct ufs_hba *hba, u32 intr_status)
 	}
 
 	trace_android_vh_ufs_check_int_errors(hba, queue_eh_work);
+	if (ufshcd_is_link_broken(hba))
+		queue_eh_work = true;
 
 	if (queue_eh_work) {
 		/*
@@ -8253,9 +8284,10 @@ static struct scsi_host_template ufshcd_driver_template = {
 	.eh_device_reset_handler = ufshcd_eh_device_reset_handler,
 	.eh_host_reset_handler   = ufshcd_eh_host_reset_handler,
 	.this_id		= -1,
-	.sg_tablesize		= SG_ALL,
+	.sg_tablesize		= SG_UFS,
 	.cmd_per_lun		= UFSHCD_CMD_PER_LUN,
 	.can_queue		= UFSHCD_CAN_QUEUE,
+	.max_sectors            = UFSHCD_MAX_HW_SECTORS,
 	.max_segment_size	= PRDT_DATA_BYTE_COUNT_MAX,
 	.max_host_blocked	= 1,
 	.track_queue_depth	= 1,
@@ -8715,7 +8747,7 @@ static int ufshcd_set_dev_pwr_mode(struct ufs_hba *hba,
 	 */
 	for (retries = 3; retries > 0; --retries) {
 		ret = scsi_execute(sdp, cmd, DMA_NONE, NULL, 0, NULL, &sshdr,
-				   HZ, 0, 0, RQF_PM, NULL);
+				   START_STOP_TIMEOUT, 0, 0, RQF_PM, NULL);
 		/*
 		 * scsi_execute() only returns a negative value if the request
 		 * queue is dying.

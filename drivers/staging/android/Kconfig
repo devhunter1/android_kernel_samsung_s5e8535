@@ -25,6 +25,15 @@ config DEBUG_KINFO
 	   - UTS_RELEASE
 	   - BUILD_INFO(ro.build.fingerprint)
 
+config SAMSUNG_LMKD_DEBUG
+	bool "record lmkd kill history"
+	default y
+	help
+	  record lmkd kill history
+
 endif # if ANDROID
 
+if EXYNOS_VARIANT1
+source "drivers/staging/android/Kconfig.variant1"
+endif
 endmenu

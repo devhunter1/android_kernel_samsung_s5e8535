@@ -1724,7 +1724,8 @@ static void zoneinfo_show_print(struct seq_file *m, pg_data_t *pgdat,
 		struct per_cpu_pages *pcp;
 		struct per_cpu_zonestat __maybe_unused *pzstats;
 
-		pcp = per_cpu_ptr(zone->per_cpu_pageset, i);
+		pcp = &per_cpu_ptr((struct per_cpu_pages_ext __percpu *)zone->per_cpu_pageset,
+				   i)->pcp;
 		seq_printf(m,
 			   "\n    cpu: %i"
 			   "\n              count: %i"
@@ -1862,7 +1863,7 @@ static const struct seq_operations vmstat_op = {
 
 #ifdef CONFIG_SMP
 static DEFINE_PER_CPU(struct delayed_work, vmstat_work);
-int sysctl_stat_interval __read_mostly = HZ;
+int sysctl_stat_interval __read_mostly = (10 * HZ);
 
 #ifdef CONFIG_PROC_FS
 static void refresh_vm_stats(struct work_struct *work)

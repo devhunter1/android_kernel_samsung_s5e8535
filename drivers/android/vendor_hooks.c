@@ -110,6 +110,8 @@
 #include <trace/hooks/direct_io.h>
 #include <trace/hooks/loop.h>
 #include <trace/hooks/psi.h>
+#include <trace/hooks/mz.h>
+
 /*
  * Export tracepoints that act as a bare tracehook (ie: have no trace event
  * associated with them) to allow external modules to probe them.
@@ -256,6 +258,13 @@ EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_page_referenced_check_bypass);
 EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_drain_all_pages_bypass);
 EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_cma_drain_all_pages_bypass);
 EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_pcplist_add_cma_pages_bypass);
+EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_free_unref_page_bypass);
+EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_kvmalloc_node_use_vmalloc);
+EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_should_alloc_pages_retry);
+EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_unreserve_highatomic_bypass);
+EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_rmqueue_bulk_bypass);
+EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_ra_tuning_max_page);
+EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_tune_mmap_readaround);
 EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_shrink_slab_bypass);
 EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_selinux_avc_insert);
 EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_selinux_avc_node_delete);
@@ -415,6 +424,7 @@ EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_tune_inactive_ratio);
 EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_check_hibernation_swap);
 EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_save_cpu_resume);
 EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_save_hib_resume_bdev);
+EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_alloc_highpage_movable_gfp_adjust);
 EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_dma_buf_stats_teardown);
 EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_madvise_cold_or_pageout);
 EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_cma_alloc_retry);
@@ -428,8 +438,12 @@ EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_direct_io_update_bio);
 EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_loop_prepare_cmd);
 EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_psi_event);
 EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_psi_group);
+EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_rmqueue_smallest_bypass);
+EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_free_one_page_bypass);
+EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_use_cma_first_check);
 /*
  * For type visibility
  */
 const struct readahead_control *GKI_struct_readahead_control;
 EXPORT_SYMBOL_GPL(GKI_struct_readahead_control);
+EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_mz_exit);

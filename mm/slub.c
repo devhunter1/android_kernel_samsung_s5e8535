@@ -37,6 +37,7 @@
 #include <linux/memcontrol.h>
 #include <linux/random.h>
 #include <kunit/test.h>
+#include <linux/sec_debug.h>
 
 #include <linux/debugfs.h>
 #include <trace/events/kmem.h>
@@ -272,6 +273,17 @@ static inline int sysfs_slab_alias(struct kmem_cache *s, const char *p)
 static void debugfs_slab_add(struct kmem_cache *);
 #else
 static inline void debugfs_slab_add(struct kmem_cache *s) { }
+#endif
+
+#ifdef CONFIG_SEC_DEBUG_BUG_ON_SLUB_CORRUPTION
+static inline void secdbg_slub_bug(void)
+{
+	BUG();
+}
+#else
+static inline void secdbg_slub_bug(void)
+{
+}
 #endif
 
 static inline void stat(const struct kmem_cache *s, enum stat_item si)
@@ -760,7 +772,7 @@ static void print_track(const char *s, struct track *t, unsigned long pr_time)
 	if (!t->addr)
 		return;
 
-	pr_err("%s in %pS age=%lu cpu=%u pid=%d\n",
+	pr_auto(ASL7, "%s in %pS age=%lu cpu=%u pid=%d\n",
 	       s, (void *)t->addr, pr_time - t->when, t->cpu, t->pid);
 #ifdef CONFIG_STACKTRACE
 	{
@@ -800,9 +812,9 @@ static void slab_bug(struct kmem_cache *s, char *fmt, ...)
 	va_start(args, fmt);
 	vaf.fmt = fmt;
 	vaf.va = &args;
-	pr_err("=============================================================================\n");
-	pr_err("BUG %s (%s): %pV\n", s->name, print_tainted(), &vaf);
-	pr_err("-----------------------------------------------------------------------------\n\n");
+	pr_auto(ASL7, "=============================================================================\n");
+	pr_auto(ASL7, "BUG %s (%s): %pV\n", s->name, print_tainted(), &vaf);
+	pr_auto(ASL7, "-----------------------------------------------------------------------------\n\n");
 	va_end(args);
 }
 
@@ -845,7 +857,7 @@ static void print_trailer(struct kmem_cache *s, struct page *page, u8 *p)
 
 	print_page_info(page);
 
-	pr_err("Object 0x%p @offset=%tu fp=0x%p\n\n",
+	pr_auto(ASL7, "Object 0x%p @offset=%tu fp=0x%p\n\n",
 	       p, p - addr, get_freepointer(s, p));
 
 	if (s->flags & SLAB_RED_ZONE)
@@ -881,9 +893,11 @@ void object_err(struct kmem_cache *s, struct page *page,
 	if (slab_add_kunit_errors())
 		return;
 
+	pr_auto_once(7);
 	slab_bug(s, "%s", reason);
 	print_trailer(s, page, object);
 	add_taint(TAINT_BAD_PAGE, LOCKDEP_NOW_UNRELIABLE);
+	pr_auto_disable(7);
 }
 
 static __printf(3, 4) void slab_err(struct kmem_cache *s, struct page *page,
@@ -895,6 +909,7 @@ static __printf(3, 4) void slab_err(struct kmem_cache *s, struct page *page,
 	if (slab_add_kunit_errors())
 		return;
 
+	pr_auto_once(7);
 	va_start(args, fmt);
 	vsnprintf(buf, sizeof(buf), fmt, args);
 	va_end(args);
@@ -902,6 +917,7 @@ static __printf(3, 4) void slab_err(struct kmem_cache *s, struct page *page,
 	print_page_info(page);
 	dump_stack();
 	add_taint(TAINT_BAD_PAGE, LOCKDEP_NOW_UNRELIABLE);
+	pr_auto_disable(7);
 }
 
 static void init_object(struct kmem_cache *s, void *object, u8 val)
@@ -923,6 +939,8 @@ static void init_object(struct kmem_cache *s, void *object, u8 val)
 static void restore_bytes(struct kmem_cache *s, char *message, u8 data,
 						void *from, void *to)
 {
+	/* for debugging bitflip, we don't restore slub padding value. */
+	BUG_ON(1);
 	slab_fix(s, "Restoring %s 0x%p-0x%p=0x%x", message, from, to - 1, data);
 	memset(from, data, to - from);
 }
@@ -948,12 +966,15 @@ static int check_bytes_and_report(struct kmem_cache *s, struct page *page,
 	if (slab_add_kunit_errors())
 		goto skip_bug_print;
 
+	pr_auto_once(7);
 	slab_bug(s, "%s overwritten", what);
-	pr_err("0x%p-0x%p @offset=%tu. First byte 0x%x instead of 0x%x\n",
+	pr_auto(ASL7, "0x%p-0x%p @offset=%tu. First byte 0x%x instead of 0x%x\n",
 					fault, end - 1, fault - addr,
 					fault[0], value);
 	print_trailer(s, page, object);
 	add_taint(TAINT_BAD_PAGE, LOCKDEP_NOW_UNRELIABLE);
+	pr_auto_disable(7);
+	secdbg_slub_bug();
 
 skip_bug_print:
 	restore_bytes(s, what, value, fault, end);
@@ -1047,6 +1068,7 @@ static int slab_pad_check(struct kmem_cache *s, struct page *page)
 	slab_err(s, page, "Padding overwritten. 0x%p-0x%p @offset=%tu",
 			fault, end - 1, fault - start);
 	print_section(KERN_ERR, "Padding ", pad, remainder);
+	secdbg_slub_bug();
 
 	restore_bytes(s, "slab padding", POISON_INUSE, fault, end);
 	return 0;
@@ -1097,6 +1119,7 @@ static int check_object(struct kmem_cache *s, struct page *page,
 	/* Check free pointer validity */
 	if (!check_valid_pointer(s, page, get_freepointer(s, p))) {
 		object_err(s, page, p, "Freepointer corrupt");
+		secdbg_slub_bug();
 		/*
 		 * No choice but to zap it and thus lose the remainder
 		 * of the free objects in this slab. May cause
@@ -1152,9 +1175,11 @@ static int on_freelist(struct kmem_cache *s, struct page *page, void *search)
 			if (object) {
 				object_err(s, page, object,
 					"Freechain corrupt");
+				secdbg_slub_bug();
 				set_freepointer(s, object, NULL);
 			} else {
 				slab_err(s, page, "Freepointer corrupt");
+				secdbg_slub_bug();
 				page->freelist = NULL;
 				page->inuse = page->objects;
 				slab_fix(s, "Freelist cleared");
@@ -1174,12 +1199,14 @@ static int on_freelist(struct kmem_cache *s, struct page *page, void *search)
 	if (page->objects != max_objects) {
 		slab_err(s, page, "Wrong number of objects. Found %d but should be %d",
 			 page->objects, max_objects);
+		secdbg_slub_bug();
 		page->objects = max_objects;
 		slab_fix(s, "Number of objects adjusted");
 	}
 	if (page->inuse != page->objects - nr) {
 		slab_err(s, page, "Wrong object count. Counter is %d but counted were %d",
 			 page->inuse, page->objects - nr);
+		secdbg_slub_bug();
 		page->inuse = page->objects - nr;
 		slab_fix(s, "Object count adjusted");
 	}
@@ -1318,6 +1345,7 @@ static noinline int alloc_debug_processing(struct kmem_cache *s,
 	return 1;
 
 bad:
+	secdbg_slub_bug();
 	if (PageSlab(page)) {
 		/*
 		 * If this is a slab page then lets do the best we can
@@ -1405,14 +1433,18 @@ next_object:
 	ret = 1;
 
 out:
-	if (cnt != bulk_cnt)
+	if (cnt != bulk_cnt) {
 		slab_err(s, page, "Bulk freelist count(%d) invalid(%d)\n",
 			 bulk_cnt, cnt);
+		secdbg_slub_bug();
+	}
 
 	slab_unlock(page, &flags2);
 	spin_unlock_irqrestore(&n->list_lock, flags);
-	if (!ret)
+	if (!ret) {
+		secdbg_slub_bug();
 		slab_fix(s, "Object at 0x%p not freed", object);
+	}
 	return ret;
 }
 

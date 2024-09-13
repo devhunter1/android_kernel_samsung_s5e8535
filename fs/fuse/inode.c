@@ -114,6 +114,10 @@ static void fuse_free_inode(struct inode *inode)
 #ifdef CONFIG_FUSE_DAX
 	kfree(fi->dax);
 #endif
+#ifdef CONFIG_FUSE_BPF
+	if (fi->bpf)
+		bpf_prog_put(fi->bpf);
+#endif
 	kmem_cache_free(fuse_inode_cachep, fi);
 }
 
@@ -123,13 +127,6 @@ static void fuse_evict_inode(struct inode *inode)
 
 	/* Will write inode on close/munmap and in all other dirtiers */
 	WARN_ON(inode->i_state & I_DIRTY_INODE);
-
-#ifdef CONFIG_FUSE_BPF
-	iput(fi->backing_inode);
-	if (fi->bpf)
-		bpf_prog_put(fi->bpf);
-	fi->bpf = NULL;
-#endif
 	truncate_inode_pages_final(&inode->i_data);
 	clear_inode(inode);
 	if (inode->i_sb->s_flags & SB_ACTIVE) {
@@ -148,6 +145,15 @@ static void fuse_evict_inode(struct inode *inode)
 		WARN_ON(!list_empty(&fi->queued_writes));
 	}
 }
+
+#ifdef CONFIG_FUSE_BPF
+static void fuse_destroy_inode(struct inode *inode)
+{
+	struct fuse_inode *fi = get_fuse_inode(inode);
+
+	iput(fi->backing_inode);
+}
+#endif
 
 static int fuse_reconfigure(struct fs_context *fsc)
 {
@@ -1166,6 +1172,9 @@ static const struct export_operations fuse_export_operations = {
 
 static const struct super_operations fuse_super_operations = {
 	.alloc_inode    = fuse_alloc_inode,
+#ifdef CONFIG_FUSE_BPF
+	.destroy_inode  = fuse_destroy_inode,
+#endif
 	.free_inode     = fuse_free_inode,
 	.evict_inode	= fuse_evict_inode,
 	.write_inode	= fuse_write_inode,
@@ -1348,6 +1357,8 @@ static void process_init_reply(struct fuse_mount *fm, struct fuse_args *args,
 		fc->conn_error = 1;
 	}
 
+	ST_LOG("<%s> dev = %u:%u  fuse Initialized",
+			__func__, MAJOR(fc->dev), MINOR(fc->dev));
 	fuse_set_initialized(fc);
 	wake_up_all(&fc->blocked_waitq);
 }
@@ -1400,6 +1411,9 @@ void fuse_send_init(struct fuse_mount *fm)
 	ia->args.nocreds = true;
 	ia->args.end = process_init_reply;
 
+	ST_LOG("<%s> dev = %u:%u  fuse send Initrequest",
+			__func__, MAJOR(fm->fc->dev), MINOR(fm->fc->dev));
+
 	if (unlikely(fm->fc->no_daemon) || fuse_simple_background(fm, &ia->args, GFP_KERNEL) != 0)
 		process_init_reply(fm, &ia->args, -ENOTCONN);
 }
@@ -1438,14 +1452,15 @@ static int fuse_bdi_init(struct fuse_conn *fc, struct super_block *sb)
 		bdi_put(sb->s_bdi);
 		sb->s_bdi = &noop_backing_dev_info;
 	}
-	err = super_setup_bdi_name(sb, "%u:%u%s", MAJOR(fc->dev),
+	/* @fs.sec -- 9b4d962cc783453fc63e4302012c8e28e11e31a5 -- */
+	err = sec_super_setup_bdi_name(sb, "%u:%u%s", MAJOR(fc->dev),
 				   MINOR(fc->dev), suffix);
 	if (err)
 		return err;
 
 	/* fuse does it's own writeback accounting */
 	sb->s_bdi->capabilities &= ~BDI_CAP_WRITEBACK_ACCT;
-	sb->s_bdi->capabilities |= BDI_CAP_STRICTLIMIT;
+	sb->s_bdi->capabilities |= (BDI_CAP_STRICTLIMIT | BDI_CAP_SEC_DEBUG);
 
 	/*
 	 * For a single fuse filesystem use max 1% of dirty +

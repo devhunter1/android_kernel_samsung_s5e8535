@@ -344,8 +344,8 @@ int dwc3_send_gadget_ep_cmd(struct dwc3_ep *dep, unsigned int cmd,
 			fallthrough;
 		case DWC3_LINK_STATE_U3:
 			ret = __dwc3_gadget_wakeup(dwc);
-			dev_WARN_ONCE(dwc->dev, ret, "wakeup failed --> %d\n",
-					ret);
+			if (ret < 0)
+				dev_warn(dwc->dev, "wakeup failed --> %d\n", ret);
 			break;
 		}
 	}
@@ -402,8 +402,8 @@ int dwc3_send_gadget_ep_cmd(struct dwc3_ep *dep, unsigned int cmd,
 				ret = 0;
 				break;
 			case DEPEVT_TRANSFER_NO_RESOURCE:
-				dev_WARN(dwc->dev, "No resource for %s\n",
-					 dep->name);
+				pr_info("%s: No resource for %s\n", __func__, dep->name);
+				dump_stack();
 				ret = -EINVAL;
 				break;
 			case DEPEVT_TRANSFER_BUS_EXPIRY:
@@ -986,15 +986,11 @@ out:
 	return 0;
 }
 
-void dwc3_remove_requests(struct dwc3 *dwc, struct dwc3_ep *dep, int status)
+static void dwc3_remove_requests(struct dwc3 *dwc, struct dwc3_ep *dep, int status)
 {
 	struct dwc3_request		*req;
 
 	dwc3_stop_active_transfer(dep, true, false);
-
-	/* If endxfer is delayed, avoid unmapping requests */
-	if (dep->flags & DWC3_EP_DELAY_STOP)
-		return;
 
 	/* - giveback all requests to gadget driver */
 	while (!list_empty(&dep->started_list)) {
@@ -1720,7 +1716,9 @@ static int __dwc3_stop_active_transfer(struct dwc3_ep *dep, bool force, bool int
 		dep->flags |= DWC3_EP_DELAY_STOP;
 		return 0;
 	}
-	WARN_ON_ONCE(ret);
+	if (ret)
+		pr_info("%s: dwc3_send_gadget_ep_cmd fails -> ret : %d\n", __func__, ret);
+
 	dep->resource_index = 0;
 
 	if (!interrupt) {
@@ -2477,7 +2475,7 @@ static void __dwc3_gadget_set_speed(struct dwc3 *dwc)
 static int dwc3_gadget_run_stop(struct dwc3 *dwc, int is_on, int suspend)
 {
 	u32			reg;
-	u32			timeout = 2000;
+	u32			timeout = 500;
 
 	if (pm_runtime_suspended(dwc->dev))
 		return 0;
@@ -2510,7 +2508,6 @@ static int dwc3_gadget_run_stop(struct dwc3 *dwc, int is_on, int suspend)
 	dwc3_gadget_dctl_write_safe(dwc, reg);
 
 	do {
-		usleep_range(1000, 2000);
 		reg = dwc3_readl(dwc->regs, DWC3_DSTS);
 		reg &= DWC3_DSTS_DEVCTRLHLT;
 	} while (--timeout && !(!is_on ^ !reg));
@@ -2607,8 +2604,12 @@ static int dwc3_gadget_pullup(struct usb_gadget *g, int is_on)
 	 */
 	if (!is_on) {
 		pm_runtime_barrier(dwc->dev);
-		if (pm_runtime_suspended(dwc->dev))
+		if (pm_runtime_suspended(dwc->dev) ||
+				(dwc->current_dr_role != DWC3_GCTL_PRTCAP_DEVICE)) {
+			pr_info("%s: current_dr_role = %d\n", __func__, dwc->current_dr_role);
+
 			return 0;
+		}
 	}
 
 	/*
@@ -2618,6 +2619,15 @@ static int dwc3_gadget_pullup(struct usb_gadget *g, int is_on)
 	 */
 	ret = pm_runtime_get_sync(dwc->dev);
 	if (!ret || ret < 0) {
+		pr_info("%s: dwc3->connected = %d\n", __func__, dwc->connected);
+		dwc->connected = false;
+		pm_runtime_put(dwc->dev);
+		return 0;
+	}
+
+	if ((is_on != 0) && (!(dwc->ev_buf->flags & BIT(20)))) {
+		pr_info("%s: dwc3->connected = %d\n", __func__, dwc->connected);
+		pr_info("%s: ev_buf->BIT(20) = %d\n", __func__, dwc->ev_buf->flags & BIT(20));
 		pm_runtime_put(dwc->dev);
 		return 0;
 	}
@@ -2627,29 +2637,34 @@ static int dwc3_gadget_pullup(struct usb_gadget *g, int is_on)
 		return 0;
 	}
 
+	if (is_on)
+		phy_set_mode(dwc->usb2_generic_phy, 1); //dp pull-up enable
+	else
+		phy_set_mode(dwc->usb2_generic_phy, 0); //dp pull-up disable
+
 	synchronize_irq(dwc->irq_gadget);
 
 	if (!is_on) {
 		ret = dwc3_gadget_soft_disconnect(dwc);
 	} else {
-		/*
-		 * In the Synopsys DWC_usb31 1.90a programming guide section
-		 * 4.1.9, it specifies that for a reconnect after a
-		 * device-initiated disconnect requires a core soft reset
-		 * (DCTL.CSftRst) before enabling the run/stop bit.
-		 */
-		ret = dwc3_core_soft_reset(dwc);
-		if (ret)
-			goto done;
-
-		dwc3_event_buffers_setup(dwc);
 		__dwc3_gadget_start(dwc);
 		ret = dwc3_gadget_run_stop(dwc, true, false);
 	}
 
-done:
+	if (is_on) {
+		ret = dwc3_gadget_set_link_state(dwc, DWC3_LINK_STATE_RX_DET);
+		if (ret)
+			dev_info(dwc->dev, "failed to put link in RX_DET\n");
+	}
+
+	if (!is_on) {
+		pr_info("%s: 50ms delay after runstop on sw disconnect\n", __func__);
+		mdelay(50);
+	}
+
 	pm_runtime_put(dwc->dev);
 
+	pr_info("%s ---\n", __func__);
 	return ret;
 }
 
@@ -2732,6 +2747,7 @@ static int __dwc3_gadget_start(struct dwc3 *dwc)
 	int			ret = 0;
 	u32			reg;
 
+	pr_info("%s +++\n", __func__);
 	/*
 	 * Use IMOD if enabled via dwc->imod_interval. Otherwise, if
 	 * the core supports IMOD, disable it.
@@ -2798,6 +2814,9 @@ static int __dwc3_gadget_start(struct dwc3 *dwc)
 	dwc3_ep0_out_start(dwc);
 
 	dwc3_gadget_enable_irq(dwc);
+	irq_set_affinity_hint(dwc->irq_gadget, cpumask_of(0x1));
+
+	pr_info("%s ---\n", __func__);
 
 	return 0;
 
@@ -2834,9 +2853,11 @@ static int dwc3_gadget_start(struct usb_gadget *g,
 
 static void __dwc3_gadget_stop(struct dwc3 *dwc)
 {
+	pr_info("%s +++\n", __func__);
 	dwc3_gadget_disable_irq(dwc);
 	__dwc3_gadget_ep_disable(dwc->eps[0]);
 	__dwc3_gadget_ep_disable(dwc->eps[1]);
+	pr_info("%s ---\n", __func__);
 }
 
 static int dwc3_gadget_stop(struct usb_gadget *g)
@@ -2849,6 +2870,7 @@ static int dwc3_gadget_stop(struct usb_gadget *g)
 	dwc->max_cfg_eps = 0;
 	spin_unlock_irqrestore(&dwc->lock, flags);
 
+	irq_set_affinity_hint(dwc->irq_gadget, NULL);
 	free_irq(dwc->irq_gadget, dwc->ev_buf);
 
 	return 0;
@@ -2899,9 +2921,13 @@ static void dwc3_gadget_set_speed(struct usb_gadget *g,
 	struct dwc3		*dwc = gadget_to_dwc(g);
 	unsigned long		flags;
 
+	pr_info("%s +++\n", __func__);
+
 	spin_lock_irqsave(&dwc->lock, flags);
 	dwc->gadget_max_speed = speed;
 	spin_unlock_irqrestore(&dwc->lock, flags);
+
+	pr_info("%s ---\n", __func__);
 }
 
 static void dwc3_gadget_set_ssp_rate(struct usb_gadget *g,
@@ -3723,6 +3749,11 @@ static void dwc3_reset_gadget(struct dwc3 *dwc)
 	if (!dwc->gadget_driver)
 		return;
 
+	if (dwc->gadget->deactivated) {
+		pr_info("%s: gadget deactivated. return!", __func__);
+		return;
+	}
+
 	if (dwc->async_callbacks && dwc->gadget->speed != USB_SPEED_UNKNOWN) {
 		spin_unlock(&dwc->lock);
 		usb_gadget_udc_reset(dwc->gadget, dwc->gadget_driver);
@@ -3814,7 +3845,8 @@ static void dwc3_clear_stall_all_ep(struct dwc3 *dwc)
 		dep->flags &= ~DWC3_EP_STALL;
 
 		ret = dwc3_send_clear_stall_ep_cmd(dep);
-		WARN_ON_ONCE(ret);
+		if (ret < 0)
+			dev_warn(dwc->dev, "dwc3_send_clear_stall_ep_cmd failed --> %d\n", ret);
 	}
 }
 
@@ -4075,6 +4107,7 @@ static void dwc3_gadget_wakeup_interrupt(struct dwc3 *dwc)
 	 * implemented.
 	 */
 
+	dwc->link_state = DWC3_LINK_STATE_RESUME;
 	if (dwc->async_callbacks && dwc->gadget_driver->resume) {
 		spin_unlock(&dwc->lock);
 		dwc->gadget_driver->resume(dwc->gadget);
@@ -4246,8 +4279,17 @@ static void dwc3_gadget_interrupt(struct dwc3 *dwc,
 		break;
 	case DWC3_DEVICE_EVENT_SUSPEND:
 		/* It changed to be suspend event for version 2.30a and above */
-		if (!DWC3_VER_IS_PRIOR(DWC3, 230A))
-			dwc3_gadget_suspend_interrupt(dwc, event->event_info);
+		if (!DWC3_VER_IS_PRIOR(DWC3, 230A)) {
+			/*
+			 * Ignore suspend event until the gadget enters into
+			 * USB_STATE_CONFIGURED state.
+			 */
+			if (dwc->gadget->state >= USB_STATE_CONFIGURED)
+				dwc3_gadget_suspend_interrupt(dwc,
+						event->event_info);
+			else
+				usb_gadget_vbus_draw(dwc->gadget, 2);
+		}
 		break;
 	case DWC3_DEVICE_EVENT_SOF:
 	case DWC3_DEVICE_EVENT_ERRATIC_ERROR:
@@ -4356,8 +4398,11 @@ static irqreturn_t dwc3_check_event_buf(struct dwc3_event_buffer *evt)
 	 * irq event handler completes before caching new event to prevent
 	 * losing events.
 	 */
-	if (evt->flags & DWC3_EVENT_PENDING)
+	if (evt->flags & DWC3_EVENT_PENDING) {
+		if (!evt->count)
+			evt->flags &= ~DWC3_EVENT_PENDING;
 		return IRQ_HANDLED;
+	}
 
 	count = dwc3_readl(dwc->regs, DWC3_GEVNTCOUNT(0));
 	count &= DWC3_GEVNTCOUNT_MASK;
@@ -4571,17 +4616,17 @@ void dwc3_gadget_exit(struct dwc3 *dwc)
 
 int dwc3_gadget_suspend(struct dwc3 *dwc)
 {
-	unsigned long flags;
-
 	if (!dwc->gadget_driver)
 		return 0;
 
-	dwc3_gadget_run_stop(dwc, false, false);
+	if (dwc->gadget->deactivated) {
+		pr_info("%s: gadget deactivated. return!", __func__);
+		return 0;
+	}
 
-	spin_lock_irqsave(&dwc->lock, flags);
+	dwc3_gadget_run_stop(dwc, false, false);
 	dwc3_disconnect_gadget(dwc);
 	__dwc3_gadget_stop(dwc);
-	spin_unlock_irqrestore(&dwc->lock, flags);
 
 	return 0;
 }
@@ -4590,8 +4635,13 @@ int dwc3_gadget_resume(struct dwc3 *dwc)
 {
 	int			ret;
 
-	if (!dwc->gadget_driver || !dwc->softconnect)
+	if (!dwc->gadget_driver || !dwc->gadget->connected)
 		return 0;
+
+	if (dwc->gadget->deactivated) {
+		pr_info("%s: gadget deactivated. return!", __func__);
+		return 0;
+	}
 
 	ret = __dwc3_gadget_start(dwc);
 	if (ret < 0)

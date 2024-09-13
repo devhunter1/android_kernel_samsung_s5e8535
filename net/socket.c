@@ -1399,6 +1399,7 @@ int __sock_create(struct net *net, int family, int type, int protocol,
 	int err;
 	struct socket *sock;
 	const struct net_proto_family *pf;
+	int max_try = 10;
 
 	/*
 	 *      Check protocol is in range
@@ -1419,7 +1420,19 @@ int __sock_create(struct net *net, int family, int type, int protocol,
 		family = PF_PACKET;
 	}
 
+repeat:
 	err = security_socket_create(family, type, protocol, kern);
+	if (err == -ENOMEM && max_try-- > 0) {
+		struct page *dummy_page = NULL;
+
+		dummy_page = alloc_page(GFP_KERNEL);
+		if (dummy_page) {
+			__free_page(dummy_page);
+			pr_err("%s: security_socket_create failed, rem_retry %d\n",
+			       __func__, max_try);
+			goto repeat;
+		}
+	}
 	if (err)
 		return err;
 
@@ -1480,7 +1493,21 @@ int __sock_create(struct net *net, int family, int type, int protocol,
 	 * module can have its refcnt decremented
 	 */
 	module_put(pf->owner);
+
+	max_try = 10;
+repeat2:
 	err = security_socket_post_create(sock, family, type, protocol, kern);
+	if (err == -ENOMEM && max_try-- > 0) {
+		struct page *dummy_page = NULL;
+
+		dummy_page = alloc_page(GFP_KERNEL);
+		if (dummy_page) {
+			__free_page(dummy_page);
+			pr_err("%s: security_socket_post_create failed, rem_retry %d\n",
+			       __func__, max_try);
+			goto repeat2;
+		}
+	}
 	if (err)
 		goto out_sock_release;
 	*res = sock;
@@ -1884,6 +1911,7 @@ int __sys_connect_file(struct file *file, struct sockaddr_storage *address,
 {
 	struct socket *sock;
 	int err;
+	int max_try = 10;
 
 	sock = sock_from_file(file);
 	if (!sock) {
@@ -1891,8 +1919,20 @@ int __sys_connect_file(struct file *file, struct sockaddr_storage *address,
 		goto out;
 	}
 
+repeat:
 	err =
 	    security_socket_connect(sock, (struct sockaddr *)address, addrlen);
+	if (err == -ENOMEM && max_try-- > 0) {
+		struct page *dummy_page = NULL;
+
+		dummy_page = alloc_page(GFP_KERNEL);
+		if (dummy_page) {
+			__free_page(dummy_page);
+			pr_err("%s: security_socket_connect failed, rem_retry %d\n",
+			       __func__, max_try);
+			goto repeat;
+		}
+	}
 	if (err)
 		goto out;
 

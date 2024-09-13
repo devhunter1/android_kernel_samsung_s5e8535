@@ -20,6 +20,11 @@
 #include <linux/hash.h>
 #include <linux/kmemleak.h>
 #include <linux/cpu.h>
+#ifdef CONFIG_SEC_DEBUG_OBJECTS_ADDITIONAL_INFO
+#ifdef CONFIG_SLUB_DEBUG
+#include <../mm/slab.h>
+#endif
+#endif
 
 #define ODEBUG_HASH_BITS	14
 #define ODEBUG_HASH_SIZE	(1 << ODEBUG_HASH_BITS)
@@ -597,6 +602,16 @@ __debug_object_init(void *addr, const struct debug_obj_descr *descr, int onstack
 	case ODEBUG_STATE_ACTIVE:
 		state = obj->state;
 		raw_spin_unlock_irqrestore(&db->lock, flags);
+#ifdef CONFIG_SEC_DEBUG_OBJECTS_ADDITIONAL_INFO
+		if (descr->fixup_init) {
+			pr_warn("Detect activate->init object, object address : 0x%p\n",
+				obj->object);
+			if (obj->nr_entries) {
+				pr_warn("Stack_trace when activating object\n");
+				stack_trace_print(obj->stack_entries, obj->nr_entries, 1);
+			}
+		}
+#endif
 		debug_print_object(obj, "init");
 		debug_object_fixup(descr->fixup_init, addr, state);
 		return;
@@ -675,12 +690,25 @@ int debug_object_activate(void *addr, const struct debug_obj_descr *descr)
 		case ODEBUG_STATE_INIT:
 		case ODEBUG_STATE_INACTIVE:
 			obj->state = ODEBUG_STATE_ACTIVE;
+#ifdef CONFIG_SEC_DEBUG_OBJECTS_ADDITIONAL_INFO
+			obj->nr_entries = stack_trace_save(obj->stack_entries, DEBUG_OBJ_CALLSTACK_MAX, 1);
+#endif
 			ret = 0;
 			break;
 
 		case ODEBUG_STATE_ACTIVE:
 			state = obj->state;
 			raw_spin_unlock_irqrestore(&db->lock, flags);
+#ifdef CONFIG_SEC_DEBUG_OBJECTS_ADDITIONAL_INFO
+			if (descr->fixup_activate) {
+				pr_warn("Detect reactivate object, object address : 0x%p\n",
+					obj->object);
+				if (obj->nr_entries) {
+					pr_warn("Stack_trace when activating object\n");
+					stack_trace_print(obj->stack_entries, obj->nr_entries, 1);
+				}
+			}
+#endif
 			debug_print_object(obj, "activate");
 			ret = debug_object_fixup(descr->fixup_activate, addr, state);
 			return ret ? 0 : -EINVAL;
@@ -972,6 +1000,9 @@ static void __debug_check_no_obj_freed(const void *address, unsigned long size)
 	struct hlist_node *tmp;
 	struct debug_obj *obj;
 	int cnt, objs_checked = 0;
+#ifdef CONFIG_SLUB_DEBUG
+	struct kmem_cache *cachep;
+#endif
 
 	saddr = (unsigned long) address;
 	eaddr = saddr + size;
@@ -996,6 +1027,20 @@ repeat:
 				descr = obj->descr;
 				state = obj->state;
 				raw_spin_unlock_irqrestore(&db->lock, flags);
+#ifdef CONFIG_SEC_DEBUG_OBJECTS_ADDITIONAL_INFO
+				pr_warn("Detect object corruption, object address : 0x%p\n", oaddr);
+				if (obj->nr_entries) {
+					pr_warn("Stack_trace when activating object\n");
+					stack_trace_print(obj->stack_entries, obj->nr_entries, 1);
+				}
+#ifdef CONFIG_SLUB_DEBUG
+				cachep = virt_to_cache(address);
+				if (cachep) {
+					pr_warn("cache: %s, object size %d\n", cachep->name, cachep->size);
+					print_tracking(cachep, (void *)address);
+				}
+#endif
+#endif
 				debug_print_object(obj, "free");
 				debug_object_fixup(descr->fixup_free,
 						   (void *) oaddr, state);

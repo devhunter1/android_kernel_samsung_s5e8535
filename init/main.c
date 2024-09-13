@@ -114,6 +114,11 @@
 
 #include <kunit/test.h>
 
+#ifdef CONFIG_SECURITY_DEFEX
+#include <linux/defex.h>
+void __init __weak defex_load_rules(void) { }
+#endif
+
 static int kernel_init(void *);
 
 extern void init_IRQ(void);
@@ -217,8 +222,15 @@ static bool __init obsolete_checksetup(char *line)
 				pr_warn("Parameter %s is obsolete, ignored\n",
 					p->str);
 				return true;
-			} else if (p->setup_func(line + n))
-				return true;
+			} else {
+				int ret;
+
+				memblock_memsize_set_name(p->str);
+				ret = p->setup_func(line + n);
+				memblock_memsize_unset_name();
+				if (ret)
+					return true;
+			}
 		}
 		p++;
 	} while (p < __setup_end);
@@ -747,8 +759,10 @@ static int __init do_early_param(char *param, char *val,
 		    (strcmp(param, "console") == 0 &&
 		     strcmp(p->str, "earlycon") == 0)
 		) {
+			memblock_memsize_set_name(p->str);
 			if (p->setup_func(val) != 0)
 				pr_warn("Malformed early option '%s'\n", param);
+			memblock_memsize_unset_name();
 		}
 	}
 	/* We accept everything at this stage. */
@@ -1642,4 +1656,7 @@ static noinline void __init kernel_init_freeable(void)
 	 */
 
 	integrity_load_keys();
+#ifdef CONFIG_SECURITY_DEFEX
+	defex_load_rules();
+#endif
 }
