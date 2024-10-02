@@ -5,6 +5,18 @@ SUBLEVEL = 104
 EXTRAVERSION =
 NAME = Trick or Treat
 
+# Board
+PLATFORM_VERSION ?= 13
+@echo "PLATFORM_VERSION: $(PLATFORM_VERSION)"
+export PLATFORM_VERSION
+ANDROID_MAJOR_VERSION ?= t
+export ARCH=arm64
+export TARGET_SOC=s5e8535
+@echo "TARGET_SOC: $(TARGET_SOC)"
+@echo "ARCH: $(ARCH)"
+@echo "ANDROID_MAJOR_VERSION: $(ANDROID_MAJOR_VERSION)"
+export ANDROID_MAJOR_VERSION
+
 # *DOCUMENTATION*
 # To see a list of typical targets execute "make help"
 # More info can be located in ./README
