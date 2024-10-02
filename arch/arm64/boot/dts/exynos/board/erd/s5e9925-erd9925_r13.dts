@@ -1,7 +1,7 @@
 /dts-v1/;
 
 / {
-	compatible = "samsung,s5e9925\0samsung,ERD9925";
+	compatible = "samsung,s5e9925", "samsung,ERD9925";
 	board_id = <0x00>;
 	board_rev = <0x13>;
 
@@ -653,7 +653,7 @@
 				compatible = "samsung,exynos-gnss";
 				interrupt-parent = <0xffffffff>;
 				interrupts = <0x00 0x22 0x04 0x00 0x1de 0x01 0x00 0x1dd 0x04 0x00 0x1dc 0x01>;
-				interrupt-names = "ACTIVE\0WATCHDOG\0WAKEUP\0SW_INIT";
+				interrupt-names = "ACTIVE", "WATCHDOG", "WAKEUP", "SW_INIT";
 				shmem,name = "KEPLER";
 				device_node_name = "gnss_ipc";
 				mbox_info = <0x04>;
@@ -1074,20 +1074,20 @@
 	};
 
 	__fixups__ {
-		gic = "/fragment@modemif/__overlay__/cpif:interrupt-parent:0\0/fragment@modemif/__overlay__/cp_mailbox:interrupt-parent:0\0/fragment@modemif/__overlay__/sysmmu@1A270000:interrupt-parent:0\0/fragment@model/__overlay__/gnss_mailbox:interrupt-parent:0\0/fragment@model/__overlay__/gnssif:interrupt-parent:0";
+		gic = "/fragment@modemif/__overlay__/cpif:interrupt-parent:0", "/fragment@modemif/__overlay__/cp_mailbox:interrupt-parent:0", "/fragment@modemif/__overlay__/sysmmu@1A270000:interrupt-parent:0", "/fragment@model/__overlay__/gnss_mailbox:interrupt-parent:0", "/fragment@model/__overlay__/gnssif:interrupt-parent:0";
 		cp_rmem = "/fragment@modemif/__overlay__/cp_shmem:memory-region:0";
-		pinctrl_1 = "/fragment@0:target:0\0/fragment@4:target:0";
+		pinctrl_1 = "/fragment@0:target:0", "/fragment@4:target:0";
 		reserved_memory = "/fragment@1:target:0";
 		gpa3 = "/fragment@model/__overlay__/gpio_keys/button@3:gpios:0";
 		gnss_rmem = "/fragment@model/__overlay__/gnssif:memory-region:0";
-		serial_0 = "/fragment@2:target:0\0/fragment@10:target:0";
+		serial_0 = "/fragment@2:target:0", "/fragment@10:target:0";
 		pinctrl_0 = "/fragment@3:target:0";
 		pinctrl_7 = "/fragment@5:target:0";
-		drmdsim_0 = "/fragment@6:target:0\0/fragment@8:target:0\0/fragment@9:target:0\0/fragment@11:target:0";
+		drmdsim_0 = "/fragment@6:target:0", "/fragment@8:target:0", "/fragment@9:target:0", "/fragment@11:target:0";
 		gpc7 = "/fragment@6/__overlay__/drmpanel:reset-gpios:0";
 		ddi_rst = "/fragment@6/__overlay__/drmpanel:pinctrl-0:0";
 		drmdp = "/fragment@7:target:0";
-		s2mps26_gpio = "/fragment@7/__overlay__:dp,aux_sw_oe:0\0/fragment@7/__overlay__:dp,sbu_sw_sel:0";
+		s2mps26_gpio = "/fragment@7/__overlay__:dp,aux_sw_oe:0", "/fragment@7/__overlay__:dp,sbu_sw_sel:0";
 	};
 
 	__local_fixups__ {
