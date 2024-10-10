@@ -5626,16 +5626,8 @@
 		phandle = <0x44>;
 	};
 
-	pp3300-fp-tp-regulator {
-		compatible = "regulator-fixed";
-		regulator-name = "pp3300_fp_tp";
-		regulator-min-microvolt = <0x325aa0>;
-		regulator-max-microvolt = <0x325aa0>;
-		regulator-always-on;
-		regulator-boot-on;
-		vin-supply = <0x55>;
-		phandle = <0x61>;
-	};
+		vdd-supply = <&pp3300_fp_tp>;
+		hid-descr-addr = <0x20>;
 
 	pp3300-hub {
 		compatible = "regulator-fixed";
