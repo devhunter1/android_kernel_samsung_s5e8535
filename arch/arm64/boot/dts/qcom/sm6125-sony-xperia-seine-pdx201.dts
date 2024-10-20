@@ -674,8 +674,7 @@
 			reg = <0x00 0xffc40000 0x00 0xc0000>;
 			record-size = <0x1000>;
 			console-size = <0x40000>;
-			msg-size = <0x20000 0x20000>;
-			phandle = <0x39>;
+			pmsg-size = <0x20000>;
 		};
 
 		memory@ffd00000 {

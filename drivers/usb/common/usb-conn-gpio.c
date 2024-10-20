@@ -42,7 +42,6 @@ struct usb_conn_info {
 
 	struct power_supply_desc desc;
 	struct power_supply *charger;
-	bool initial_detection;
 };
 
 /**
