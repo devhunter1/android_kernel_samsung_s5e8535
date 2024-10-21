@@ -5,7 +5,7 @@ SUBLEVEL = 144
 EXTRAVERSION =
 NAME = Trick or Treat
 
-# Board
+# Set variables while building with aosp build system
 PLATFORM_VERSION ?= 13
 @echo "PLATFORM_VERSION: $(PLATFORM_VERSION)"
 export PLATFORM_VERSION
@@ -16,6 +16,8 @@ export TARGET_SOC=s5e8535
 @echo "ARCH: $(ARCH)"
 @echo "ANDROID_MAJOR_VERSION: $(ANDROID_MAJOR_VERSION)"
 export ANDROID_MAJOR_VERSION
+LLVM := 1
+LLVM_IAS := 1
 
 # *DOCUMENTATION*
 # To see a list of typical targets execute "make help"
