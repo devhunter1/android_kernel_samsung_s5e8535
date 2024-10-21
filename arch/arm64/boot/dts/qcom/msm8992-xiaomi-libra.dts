@@ -247,14 +247,8 @@
 			phandle = <0x4d>;
 		};
 
-		audio@cb400000 {
-			reg = <0x00 0xcb000000 0x00 0x400000>;
-			no-mem;
-			phandle = <0x4e>;
-		};
-
-		qseecom@cb400000 {
-			reg = <0x00 0xcb400000 0x00 0x1c00000>;
+		qseecom_mem: qseecom@cb400000 {
+			reg = <0 0xcb400000 0 0x1c00000>;
 			no-mem;
 			phandle = <0x4f>;
 		};

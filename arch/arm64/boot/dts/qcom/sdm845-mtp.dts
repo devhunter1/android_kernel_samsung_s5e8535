@@ -5597,506 +5597,328 @@
 		phandle = <0xd5>;
 	};
 
-	__symbols__ {
-		hyp_mem = "/reserved-memory/memory@85700000";
-		xbl_mem = "/reserved-memory/memory@85e00000";
-		aop_mem = "/reserved-memory/memory@85fc0000";
-		aop_cmd_db_mem = "/reserved-memory/memory@85fe0000";
-		smem_mem = "/reserved-memory/memory@86000000";
-		tz_mem = "/reserved-memory/memory@86200000";
-		rmtfs_mem = "/reserved-memory/memory@88f00000";
-		qseecom_mem = "/reserved-memory/memory@8ab00000";
-		camera_mem = "/reserved-memory/memory@8bf00000";
-		ipa_fw_mem = "/reserved-memory/memory@8c400000";
-		ipa_gsi_mem = "/reserved-memory/memory@8c410000";
-		gpu_mem = "/reserved-memory/memory@8c415000";
-		adsp_mem = "/reserved-memory/memory@8c500000";
-		wlan_msa_mem = "/reserved-memory/memory@8df00000";
-		mpss_region = "/reserved-memory/memory@8e000000";
-		venus_mem = "/reserved-memory/memory@95800000";
-		cdsp_mem = "/reserved-memory/memory@95d00000";
-		mba_region = "/reserved-memory/memory@96500000";
-		slpi_mem = "/reserved-memory/memory@96700000";
-		spss_mem = "/reserved-memory/memory@97b00000";
-		CPU0 = "/cpus/cpu@0";
-		L2_0 = "/cpus/cpu@0/l2-cache";
-		L3_0 = "/cpus/cpu@0/l2-cache/l3-cache";
-		CPU1 = "/cpus/cpu@100";
-		L2_100 = "/cpus/cpu@100/l2-cache";
-		CPU2 = "/cpus/cpu@200";
-		L2_200 = "/cpus/cpu@200/l2-cache";
-		CPU3 = "/cpus/cpu@300";
-		L2_300 = "/cpus/cpu@300/l2-cache";
-		CPU4 = "/cpus/cpu@400";
-		L2_400 = "/cpus/cpu@400/l2-cache";
-		CPU5 = "/cpus/cpu@500";
-		L2_500 = "/cpus/cpu@500/l2-cache";
-		CPU6 = "/cpus/cpu@600";
-		L2_600 = "/cpus/cpu@600/l2-cache";
-		CPU7 = "/cpus/cpu@700";
-		L2_700 = "/cpus/cpu@700/l2-cache";
-		LITTLE_CPU_SLEEP_0 = "/cpus/idle-states/cpu-sleep-0-0";
-		LITTLE_CPU_SLEEP_1 = "/cpus/idle-states/cpu-sleep-0-1";
-		BIG_CPU_SLEEP_0 = "/cpus/idle-states/cpu-sleep-1-0";
-		BIG_CPU_SLEEP_1 = "/cpus/idle-states/cpu-sleep-1-1";
-		CLUSTER_SLEEP_0 = "/cpus/idle-states/cluster-sleep-0";
-		cpu0_opp_table = "/cpu0_opp_table";
-		cpu0_opp1 = "/cpu0_opp_table/opp-300000000";
-		cpu0_opp2 = "/cpu0_opp_table/opp-403200000";
-		cpu0_opp3 = "/cpu0_opp_table/opp-480000000";
-		cpu0_opp4 = "/cpu0_opp_table/opp-576000000";
-		cpu0_opp5 = "/cpu0_opp_table/opp-652800000";
-		cpu0_opp6 = "/cpu0_opp_table/opp-748800000";
-		cpu0_opp7 = "/cpu0_opp_table/opp-825600000";
-		cpu0_opp8 = "/cpu0_opp_table/opp-902400000";
-		cpu0_opp9 = "/cpu0_opp_table/opp-979200000";
-		cpu0_opp10 = "/cpu0_opp_table/opp-1056000000";
-		cpu0_opp11 = "/cpu0_opp_table/opp-1132800000";
-		cpu0_opp12 = "/cpu0_opp_table/opp-1228800000";
-		cpu0_opp13 = "/cpu0_opp_table/opp-1324800000";
-		cpu0_opp14 = "/cpu0_opp_table/opp-1420800000";
-		cpu0_opp15 = "/cpu0_opp_table/opp-1516800000";
-		cpu0_opp16 = "/cpu0_opp_table/opp-1612800000";
-		cpu0_opp17 = "/cpu0_opp_table/opp-1689600000";
-		cpu0_opp18 = "/cpu0_opp_table/opp-1766400000";
-		cpu4_opp_table = "/cpu4_opp_table";
-		cpu4_opp1 = "/cpu4_opp_table/opp-300000000";
-		cpu4_opp2 = "/cpu4_opp_table/opp-403200000";
-		cpu4_opp3 = "/cpu4_opp_table/opp-480000000";
-		cpu4_opp4 = "/cpu4_opp_table/opp-576000000";
-		cpu4_opp5 = "/cpu4_opp_table/opp-652800000";
-		cpu4_opp6 = "/cpu4_opp_table/opp-748800000";
-		cpu4_opp7 = "/cpu4_opp_table/opp-825600000";
-		cpu4_opp8 = "/cpu4_opp_table/opp-902400000";
-		cpu4_opp9 = "/cpu4_opp_table/opp-979200000";
-		cpu4_opp10 = "/cpu4_opp_table/opp-1056000000";
-		cpu4_opp11 = "/cpu4_opp_table/opp-1132800000";
-		cpu4_opp12 = "/cpu4_opp_table/opp-1209600000";
-		cpu4_opp13 = "/cpu4_opp_table/opp-1286400000";
-		cpu4_opp14 = "/cpu4_opp_table/opp-1363200000";
-		cpu4_opp15 = "/cpu4_opp_table/opp-1459200000";
-		cpu4_opp16 = "/cpu4_opp_table/opp-1536000000";
-		cpu4_opp17 = "/cpu4_opp_table/opp-1612800000";
-		cpu4_opp18 = "/cpu4_opp_table/opp-1689600000";
-		cpu4_opp19 = "/cpu4_opp_table/opp-1766400000";
-		cpu4_opp20 = "/cpu4_opp_table/opp-1843200000";
-		cpu4_opp21 = "/cpu4_opp_table/opp-1920000000";
-		cpu4_opp22 = "/cpu4_opp_table/opp-1996800000";
-		cpu4_opp23 = "/cpu4_opp_table/opp-2092800000";
-		cpu4_opp24 = "/cpu4_opp_table/opp-2169600000";
-		cpu4_opp25 = "/cpu4_opp_table/opp-2246400000";
-		cpu4_opp26 = "/cpu4_opp_table/opp-2323200000";
-		cpu4_opp27 = "/cpu4_opp_table/opp-2400000000";
-		cpu4_opp28 = "/cpu4_opp_table/opp-2476800000";
-		cpu4_opp29 = "/cpu4_opp_table/opp-2553600000";
-		cpu4_opp30 = "/cpu4_opp_table/opp-2649600000";
-		cpu4_opp31 = "/cpu4_opp_table/opp-2745600000";
-		cpu4_opp32 = "/cpu4_opp_table/opp-2803200000";
-		xo_board = "/clocks/xo-board";
-		sleep_clk = "/clocks/sleep-clk";
-		adsp_pas = "/remoteproc-adsp";
-		q6afe = "/remoteproc-adsp/glink-edge/apr/apr-service@4";
-		q6afedai = "/remoteproc-adsp/glink-edge/apr/apr-service@4/dais";
-		q6asm = "/remoteproc-adsp/glink-edge/apr/apr-service@7";
-		q6asmdai = "/remoteproc-adsp/glink-edge/apr/apr-service@7/dais";
-		q6adm = "/remoteproc-adsp/glink-edge/apr/apr-service@8";
-		q6routing = "/remoteproc-adsp/glink-edge/apr/apr-service@8/routing";
-		cdsp_pas = "/remoteproc-cdsp";
-		tcsr_mutex = "/hwlock";
-		cdsp_smp2p_out = "/smp2p-cdsp/master-kernel";
-		cdsp_smp2p_in = "/smp2p-cdsp/slave-kernel";
-		adsp_smp2p_out = "/smp2p-lpass/master-kernel";
-		adsp_smp2p_in = "/smp2p-lpass/slave-kernel";
-		modem_smp2p_out = "/smp2p-mpss/master-kernel";
-		modem_smp2p_in = "/smp2p-mpss/slave-kernel";
-		ipa_smp2p_out = "/smp2p-mpss/ipa-ap-to-modem";
-		ipa_smp2p_in = "/smp2p-mpss/ipa-modem-to-ap";
-		slpi_smp2p_out = "/smp2p-slpi/master-kernel";
-		slpi_smp2p_in = "/smp2p-slpi/slave-kernel";
-		soc = "/soc@0";
-		gcc = "/soc@0/clock-controller@100000";
-		qusb2p_hstx_trim = "/soc@0/qfprom@784000/hstx-trim-primary@1eb";
-		qusb2s_hstx_trim = "/soc@0/qfprom@784000/hstx-trim-secondary@1eb";
-		rng = "/soc@0/rng@793000";
-		qup_opp_table = "/soc@0/qup-opp-table";
-		qupv3_id_0 = "/soc@0/geniqup@8c0000";
-		i2c0 = "/soc@0/geniqup@8c0000/i2c@880000";
-		spi0 = "/soc@0/geniqup@8c0000/spi@880000";
-		uart0 = "/soc@0/geniqup@8c0000/serial@880000";
-		i2c1 = "/soc@0/geniqup@8c0000/i2c@884000";
-		spi1 = "/soc@0/geniqup@8c0000/spi@884000";
-		uart1 = "/soc@0/geniqup@8c0000/serial@884000";
-		i2c2 = "/soc@0/geniqup@8c0000/i2c@888000";
-		spi2 = "/soc@0/geniqup@8c0000/spi@888000";
-		uart2 = "/soc@0/geniqup@8c0000/serial@888000";
-		i2c3 = "/soc@0/geniqup@8c0000/i2c@88c000";
-		spi3 = "/soc@0/geniqup@8c0000/spi@88c000";
-		uart3 = "/soc@0/geniqup@8c0000/serial@88c000";
-		i2c4 = "/soc@0/geniqup@8c0000/i2c@890000";
-		spi4 = "/soc@0/geniqup@8c0000/spi@890000";
-		uart4 = "/soc@0/geniqup@8c0000/serial@890000";
-		i2c5 = "/soc@0/geniqup@8c0000/i2c@894000";
-		spi5 = "/soc@0/geniqup@8c0000/spi@894000";
-		uart5 = "/soc@0/geniqup@8c0000/serial@894000";
-		i2c6 = "/soc@0/geniqup@8c0000/i2c@898000";
-		spi6 = "/soc@0/geniqup@8c0000/spi@898000";
-		uart6 = "/soc@0/geniqup@8c0000/serial@898000";
-		i2c7 = "/soc@0/geniqup@8c0000/i2c@89c000";
-		spi7 = "/soc@0/geniqup@8c0000/spi@89c000";
-		uart7 = "/soc@0/geniqup@8c0000/serial@89c000";
-		qupv3_id_1 = "/soc@0/geniqup@ac0000";
-		i2c8 = "/soc@0/geniqup@ac0000/i2c@a80000";
-		spi8 = "/soc@0/geniqup@ac0000/spi@a80000";
-		uart8 = "/soc@0/geniqup@ac0000/serial@a80000";
-		i2c9 = "/soc@0/geniqup@ac0000/i2c@a84000";
-		spi9 = "/soc@0/geniqup@ac0000/spi@a84000";
-		uart9 = "/soc@0/geniqup@ac0000/serial@a84000";
-		i2c10 = "/soc@0/geniqup@ac0000/i2c@a88000";
-		spi10 = "/soc@0/geniqup@ac0000/spi@a88000";
-		uart10 = "/soc@0/geniqup@ac0000/serial@a88000";
-		i2c11 = "/soc@0/geniqup@ac0000/i2c@a8c000";
-		spi11 = "/soc@0/geniqup@ac0000/spi@a8c000";
-		uart11 = "/soc@0/geniqup@ac0000/serial@a8c000";
-		i2c12 = "/soc@0/geniqup@ac0000/i2c@a90000";
-		spi12 = "/soc@0/geniqup@ac0000/spi@a90000";
-		uart12 = "/soc@0/geniqup@ac0000/serial@a90000";
-		i2c13 = "/soc@0/geniqup@ac0000/i2c@a94000";
-		spi13 = "/soc@0/geniqup@ac0000/spi@a94000";
-		uart13 = "/soc@0/geniqup@ac0000/serial@a94000";
-		i2c14 = "/soc@0/geniqup@ac0000/i2c@a98000";
-		spi14 = "/soc@0/geniqup@ac0000/spi@a98000";
-		uart14 = "/soc@0/geniqup@ac0000/serial@a98000";
-		i2c15 = "/soc@0/geniqup@ac0000/i2c@a9c000";
-		spi15 = "/soc@0/geniqup@ac0000/spi@a9c000";
-		uart15 = "/soc@0/geniqup@ac0000/serial@a9c000";
-		pcie0 = "/soc@0/pci@1c00000";
-		pcie0_phy = "/soc@0/phy@1c06000";
-		pcie0_lane = "/soc@0/phy@1c06000/phy@1c06200";
-		pcie1 = "/soc@0/pci@1c08000";
-		pcie1_phy = "/soc@0/phy@1c0a000";
-		pcie1_lane = "/soc@0/phy@1c0a000/phy@1c06200";
-		mem_noc = "/soc@0/interconnect@1380000";
-		dc_noc = "/soc@0/interconnect@14e0000";
-		config_noc = "/soc@0/interconnect@1500000";
-		system_noc = "/soc@0/interconnect@1620000";
-		aggre1_noc = "/soc@0/interconnect@16e0000";
-		aggre2_noc = "/soc@0/interconnect@1700000";
-		mmss_noc = "/soc@0/interconnect@1740000";
-		ufs_mem_hc = "/soc@0/ufshc@1d84000";
-		ufs_mem_phy = "/soc@0/phy@1d87000";
-		ufs_mem_phy_lanes = "/soc@0/phy@1d87000/phy@1d87400";
-		cryptobam = "/soc@0/dma@1dc4000";
-		crypto = "/soc@0/crypto@1dfa000";
-		ipa = "/soc@0/ipa@1e40000";
-		tcsr_mutex_regs = "/soc@0/syscon@1f40000";
-		tlmm = "/soc@0/pinctrl@3400000";
-		cci0_default = "/soc@0/pinctrl@3400000/cci0-default";
-		cci0_sleep = "/soc@0/pinctrl@3400000/cci0-sleep";
-		cci1_default = "/soc@0/pinctrl@3400000/cci1-default";
-		cci1_sleep = "/soc@0/pinctrl@3400000/cci1-sleep";
-		qspi_clk = "/soc@0/pinctrl@3400000/qspi-clk";
-		qspi_cs0 = "/soc@0/pinctrl@3400000/qspi-cs0";
-		qspi_cs1 = "/soc@0/pinctrl@3400000/qspi-cs1";
-		qspi_data01 = "/soc@0/pinctrl@3400000/qspi-data01";
-		qspi_data12 = "/soc@0/pinctrl@3400000/qspi-data12";
-		qup_i2c0_default = "/soc@0/pinctrl@3400000/qup-i2c0-default";
-		qup_i2c1_default = "/soc@0/pinctrl@3400000/qup-i2c1-default";
-		qup_i2c2_default = "/soc@0/pinctrl@3400000/qup-i2c2-default";
-		qup_i2c3_default = "/soc@0/pinctrl@3400000/qup-i2c3-default";
-		qup_i2c4_default = "/soc@0/pinctrl@3400000/qup-i2c4-default";
-		qup_i2c5_default = "/soc@0/pinctrl@3400000/qup-i2c5-default";
-		qup_i2c6_default = "/soc@0/pinctrl@3400000/qup-i2c6-default";
-		qup_i2c7_default = "/soc@0/pinctrl@3400000/qup-i2c7-default";
-		qup_i2c8_default = "/soc@0/pinctrl@3400000/qup-i2c8-default";
-		qup_i2c9_default = "/soc@0/pinctrl@3400000/qup-i2c9-default";
-		qup_i2c10_default = "/soc@0/pinctrl@3400000/qup-i2c10-default";
-		qup_i2c11_default = "/soc@0/pinctrl@3400000/qup-i2c11-default";
-		qup_i2c12_default = "/soc@0/pinctrl@3400000/qup-i2c12-default";
-		qup_i2c13_default = "/soc@0/pinctrl@3400000/qup-i2c13-default";
-		qup_i2c14_default = "/soc@0/pinctrl@3400000/qup-i2c14-default";
-		qup_i2c15_default = "/soc@0/pinctrl@3400000/qup-i2c15-default";
-		qup_spi0_default = "/soc@0/pinctrl@3400000/qup-spi0-default";
-		qup_spi1_default = "/soc@0/pinctrl@3400000/qup-spi1-default";
-		qup_spi2_default = "/soc@0/pinctrl@3400000/qup-spi2-default";
-		qup_spi3_default = "/soc@0/pinctrl@3400000/qup-spi3-default";
-		qup_spi4_default = "/soc@0/pinctrl@3400000/qup-spi4-default";
-		qup_spi5_default = "/soc@0/pinctrl@3400000/qup-spi5-default";
-		qup_spi6_default = "/soc@0/pinctrl@3400000/qup-spi6-default";
-		qup_spi7_default = "/soc@0/pinctrl@3400000/qup-spi7-default";
-		qup_spi8_default = "/soc@0/pinctrl@3400000/qup-spi8-default";
-		qup_spi9_default = "/soc@0/pinctrl@3400000/qup-spi9-default";
-		qup_spi10_default = "/soc@0/pinctrl@3400000/qup-spi10-default";
-		qup_spi11_default = "/soc@0/pinctrl@3400000/qup-spi11-default";
-		qup_spi12_default = "/soc@0/pinctrl@3400000/qup-spi12-default";
-		qup_spi13_default = "/soc@0/pinctrl@3400000/qup-spi13-default";
-		qup_spi14_default = "/soc@0/pinctrl@3400000/qup-spi14-default";
-		qup_spi15_default = "/soc@0/pinctrl@3400000/qup-spi15-default";
-		qup_uart0_default = "/soc@0/pinctrl@3400000/qup-uart0-default";
-		qup_uart1_default = "/soc@0/pinctrl@3400000/qup-uart1-default";
-		qup_uart2_default = "/soc@0/pinctrl@3400000/qup-uart2-default";
-		qup_uart3_default = "/soc@0/pinctrl@3400000/qup-uart3-default";
-		qup_uart4_default = "/soc@0/pinctrl@3400000/qup-uart4-default";
-		qup_uart5_default = "/soc@0/pinctrl@3400000/qup-uart5-default";
-		qup_uart6_default = "/soc@0/pinctrl@3400000/qup-uart6-default";
-		qup_uart7_default = "/soc@0/pinctrl@3400000/qup-uart7-default";
-		qup_uart8_default = "/soc@0/pinctrl@3400000/qup-uart8-default";
-		qup_uart9_default = "/soc@0/pinctrl@3400000/qup-uart9-default";
-		qup_uart10_default = "/soc@0/pinctrl@3400000/qup-uart10-default";
-		qup_uart11_default = "/soc@0/pinctrl@3400000/qup-uart11-default";
-		qup_uart12_default = "/soc@0/pinctrl@3400000/qup-uart12-default";
-		qup_uart13_default = "/soc@0/pinctrl@3400000/qup-uart13-default";
-		qup_uart14_default = "/soc@0/pinctrl@3400000/qup-uart14-default";
-		qup_uart15_default = "/soc@0/pinctrl@3400000/qup-uart15-default";
-		quat_mi2s_sleep = "/soc@0/pinctrl@3400000/quat_mi2s_sleep";
-		quat_mi2s_active = "/soc@0/pinctrl@3400000/quat_mi2s_active";
-		quat_mi2s_sd0_sleep = "/soc@0/pinctrl@3400000/quat_mi2s_sd0_sleep";
-		quat_mi2s_sd0_active = "/soc@0/pinctrl@3400000/quat_mi2s_sd0_active";
-		quat_mi2s_sd1_sleep = "/soc@0/pinctrl@3400000/quat_mi2s_sd1_sleep";
-		quat_mi2s_sd1_active = "/soc@0/pinctrl@3400000/quat_mi2s_sd1_active";
-		quat_mi2s_sd2_sleep = "/soc@0/pinctrl@3400000/quat_mi2s_sd2_sleep";
-		quat_mi2s_sd2_active = "/soc@0/pinctrl@3400000/quat_mi2s_sd2_active";
-		quat_mi2s_sd3_sleep = "/soc@0/pinctrl@3400000/quat_mi2s_sd3_sleep";
-		quat_mi2s_sd3_active = "/soc@0/pinctrl@3400000/quat_mi2s_sd3_active";
-		sdc2_clk = "/soc@0/pinctrl@3400000/sdc2-clk";
-		sdc2_cmd = "/soc@0/pinctrl@3400000/sdc2-cmd";
-		sdc2_data = "/soc@0/pinctrl@3400000/sdc2-data";
-		sd_card_det_n = "/soc@0/pinctrl@3400000/sd-card-det-n";
-		mss_pil = "/soc@0/remoteproc@4080000";
-		gpucc = "/soc@0/clock-controller@5090000";
-		stm_out = "/soc@0/stm@6002000/out-ports/port/endpoint";
-		funnel0_out = "/soc@0/funnel@6041000/out-ports/port/endpoint";
-		funnel0_in7 = "/soc@0/funnel@6041000/in-ports/port@7/endpoint";
-		funnel2_out = "/soc@0/funnel@6043000/out-ports/port/endpoint";
-		funnel2_in5 = "/soc@0/funnel@6043000/in-ports/port@5/endpoint";
-		merge_funnel_out = "/soc@0/funnel@6045000/out-ports/port/endpoint";
-		merge_funnel_in0 = "/soc@0/funnel@6045000/in-ports/port@0/endpoint";
-		merge_funnel_in2 = "/soc@0/funnel@6045000/in-ports/port@2/endpoint";
-		replicator_out = "/soc@0/replicator@6046000/out-ports/port/endpoint";
-		replicator_in = "/soc@0/replicator@6046000/in-ports/port/endpoint";
-		etf_out = "/soc@0/etf@6047000/out-ports/port/endpoint";
-		etf_in = "/soc@0/etf@6047000/in-ports/port@1/endpoint";
-		etr_in = "/soc@0/etr@6048000/in-ports/port/endpoint";
-		etm0_out = "/soc@0/etm@7040000/out-ports/port/endpoint";
-		etm1_out = "/soc@0/etm@7140000/out-ports/port/endpoint";
-		etm2_out = "/soc@0/etm@7240000/out-ports/port/endpoint";
-		etm3_out = "/soc@0/etm@7340000/out-ports/port/endpoint";
-		etm4_out = "/soc@0/etm@7440000/out-ports/port/endpoint";
-		etm5_out = "/soc@0/etm@7540000/out-ports/port/endpoint";
-		etm6_out = "/soc@0/etm@7640000/out-ports/port/endpoint";
-		etm7_out = "/soc@0/etm@7740000/out-ports/port/endpoint";
-		apss_funnel_out = "/soc@0/funnel@7800000/out-ports/port/endpoint";
-		apss_funnel_in0 = "/soc@0/funnel@7800000/in-ports/port@0/endpoint";
-		apss_funnel_in1 = "/soc@0/funnel@7800000/in-ports/port@1/endpoint";
-		apss_funnel_in2 = "/soc@0/funnel@7800000/in-ports/port@2/endpoint";
-		apss_funnel_in3 = "/soc@0/funnel@7800000/in-ports/port@3/endpoint";
-		apss_funnel_in4 = "/soc@0/funnel@7800000/in-ports/port@4/endpoint";
-		apss_funnel_in5 = "/soc@0/funnel@7800000/in-ports/port@5/endpoint";
-		apss_funnel_in6 = "/soc@0/funnel@7800000/in-ports/port@6/endpoint";
-		apss_funnel_in7 = "/soc@0/funnel@7800000/in-ports/port@7/endpoint";
-		apss_merge_funnel_out = "/soc@0/funnel@7810000/out-ports/port/endpoint";
-		apss_merge_funnel_in = "/soc@0/funnel@7810000/in-ports/port/endpoint";
-		sdhc_2 = "/soc@0/sdhci@8804000";
-		sdhc2_opp_table = "/soc@0/sdhci@8804000/sdhc2-opp-table";
-		qspi_opp_table = "/soc@0/qspi-opp-table";
-		qspi = "/soc@0/spi@88df000";
-		slim = "/soc@0/slim@171c0000";
-		wcd9340_ifd = "/soc@0/slim@171c0000/ngd@1/ifd@0";
-		wcd9340 = "/soc@0/slim@171c0000/ngd@1/codec@1";
-		wcdgpio = "/soc@0/slim@171c0000/ngd@1/codec@1/gpio-controller@42";
-		swm = "/soc@0/slim@171c0000/ngd@1/codec@1/swm@c85";
-		sound = "/soc@0/sound";
-		usb_1_hsphy = "/soc@0/phy@88e2000";
-		usb_2_hsphy = "/soc@0/phy@88e3000";
-		usb_1_qmpphy = "/soc@0/phy@88e9000";
-		usb_1_ssphy = "/soc@0/phy@88e9000/phy@88e9200";
-		usb_2_qmpphy = "/soc@0/phy@88eb000";
-		usb_2_ssphy = "/soc@0/phy@88eb000/phy@88eb200";
-		usb_1 = "/soc@0/usb@a6f8800";
-		usb_1_dwc3 = "/soc@0/usb@a6f8800/dwc3@a600000";
-		usb_2 = "/soc@0/usb@a8f8800";
-		usb_2_dwc3 = "/soc@0/usb@a8f8800/dwc3@a800000";
-		venus = "/soc@0/video-codec@aa00000";
-		venus_opp_table = "/soc@0/video-codec@aa00000/venus-opp-table";
-		videocc = "/soc@0/clock-controller@ab00000";
-		camss = "/soc@0/camss@a00000";
-		cci = "/soc@0/cci@ac4a000";
-		cci_i2c0 = "/soc@0/cci@ac4a000/i2c-bus@0";
-		cci_i2c1 = "/soc@0/cci@ac4a000/i2c-bus@1";
-		clock_camcc = "/soc@0/clock-controller@ad00000";
-		dsi_opp_table = "/soc@0/dsi-opp-table";
-		mdss = "/soc@0/mdss@ae00000";
-		mdss_mdp = "/soc@0/mdss@ae00000/mdp@ae01000";
-		dpu_intf1_out = "/soc@0/mdss@ae00000/mdp@ae01000/ports/port@0/endpoint";
-		dpu_intf2_out = "/soc@0/mdss@ae00000/mdp@ae01000/ports/port@1/endpoint";
-		mdp_opp_table = "/soc@0/mdss@ae00000/mdp@ae01000/mdp-opp-table";
-		dsi0 = "/soc@0/mdss@ae00000/dsi@ae94000";
-		dsi0_in = "/soc@0/mdss@ae00000/dsi@ae94000/ports/port@0/endpoint";
-		dsi0_out = "/soc@0/mdss@ae00000/dsi@ae94000/ports/port@1/endpoint";
-		truly_in_0 = "/soc@0/mdss@ae00000/dsi@ae94000/panel@0/ports/port@0/endpoint";
-		truly_in_1 = "/soc@0/mdss@ae00000/dsi@ae94000/panel@0/ports/port@1/endpoint";
-		dsi0_phy = "/soc@0/mdss@ae00000/dsi-phy@ae94400";
-		dsi1 = "/soc@0/mdss@ae00000/dsi@ae96000";
-		dsi1_in = "/soc@0/mdss@ae00000/dsi@ae96000/ports/port@0/endpoint";
-		dsi1_out = "/soc@0/mdss@ae00000/dsi@ae96000/ports/port@1/endpoint";
-		dsi1_phy = "/soc@0/mdss@ae00000/dsi-phy@ae96400";
-		gpu = "/soc@0/gpu@5000000";
-		gpu_opp_table = "/soc@0/gpu@5000000/opp-table";
-		adreno_smmu = "/soc@0/iommu@5040000";
-		gmu = "/soc@0/gmu@506a000";
-		gmu_opp_table = "/soc@0/gmu@506a000/opp-table";
-		dispcc = "/soc@0/clock-controller@af00000";
-		pdc_intc = "/soc@0/interrupt-controller@b220000";
-		pdc_reset = "/soc@0/reset-controller@b2e0000";
-		tsens0 = "/soc@0/thermal-sensor@c263000";
-		tsens1 = "/soc@0/thermal-sensor@c265000";
-		aoss_reset = "/soc@0/reset-controller@c2a0000";
-		aoss_qmp = "/soc@0/power-controller@c300000";
-		cx_cdev = "/soc@0/power-controller@c300000/cx";
-		ebi_cdev = "/soc@0/power-controller@c300000/ebi";
-		spmi_bus = "/soc@0/spmi@c440000";
-		apps_smmu = "/soc@0/iommu@15000000";
-		lpasscc = "/soc@0/clock-controller@17014000";
-		gladiator_noc = "/soc@0/interconnect@17900000";
-		apss_shared = "/soc@0/mailbox@17990000";
-		apps_rsc = "/soc@0/rsc@179c0000";
-		apps_bcm_voter = "/soc@0/rsc@179c0000/bcm-voter";
-		rpmhcc = "/soc@0/rsc@179c0000/clock-controller";
-		rpmhpd = "/soc@0/rsc@179c0000/power-controller";
-		rpmhpd_opp_table = "/soc@0/rsc@179c0000/power-controller/opp-table";
-		rpmhpd_opp_ret = "/soc@0/rsc@179c0000/power-controller/opp-table/opp1";
-		rpmhpd_opp_min_svs = "/soc@0/rsc@179c0000/power-controller/opp-table/opp2";
-		rpmhpd_opp_low_svs = "/soc@0/rsc@179c0000/power-controller/opp-table/opp3";
-		rpmhpd_opp_svs = "/soc@0/rsc@179c0000/power-controller/opp-table/opp4";
-		rpmhpd_opp_svs_l1 = "/soc@0/rsc@179c0000/power-controller/opp-table/opp5";
-		rpmhpd_opp_nom = "/soc@0/rsc@179c0000/power-controller/opp-table/opp6";
-		rpmhpd_opp_nom_l1 = "/soc@0/rsc@179c0000/power-controller/opp-table/opp7";
-		rpmhpd_opp_nom_l2 = "/soc@0/rsc@179c0000/power-controller/opp-table/opp8";
-		rpmhpd_opp_turbo = "/soc@0/rsc@179c0000/power-controller/opp-table/opp9";
-		rpmhpd_opp_turbo_l1 = "/soc@0/rsc@179c0000/power-controller/opp-table/opp10";
-		vreg_s2a_1p125 = "/soc@0/rsc@179c0000/pm8998-rpmh-regulators/smps2";
-		vreg_s3a_1p35 = "/soc@0/rsc@179c0000/pm8998-rpmh-regulators/smps3";
-		vreg_s5a_2p04 = "/soc@0/rsc@179c0000/pm8998-rpmh-regulators/smps5";
-		vreg_s7a_1p025 = "/soc@0/rsc@179c0000/pm8998-rpmh-regulators/smps7";
-		vdd_qusb_hs0 = "/soc@0/rsc@179c0000/pm8998-rpmh-regulators/ldo1";
-		vdda_hp_pcie_core = "/soc@0/rsc@179c0000/pm8998-rpmh-regulators/ldo1";
-		vdda_mipi_csi0_0p9 = "/soc@0/rsc@179c0000/pm8998-rpmh-regulators/ldo1";
-		vdda_mipi_csi1_0p9 = "/soc@0/rsc@179c0000/pm8998-rpmh-regulators/ldo1";
-		vdda_mipi_csi2_0p9 = "/soc@0/rsc@179c0000/pm8998-rpmh-regulators/ldo1";
-		vdda_mipi_dsi0_pll = "/soc@0/rsc@179c0000/pm8998-rpmh-regulators/ldo1";
-		vdda_mipi_dsi1_pll = "/soc@0/rsc@179c0000/pm8998-rpmh-regulators/ldo1";
-		vdda_qlink_lv = "/soc@0/rsc@179c0000/pm8998-rpmh-regulators/ldo1";
-		vdda_qlink_lv_ck = "/soc@0/rsc@179c0000/pm8998-rpmh-regulators/ldo1";
-		vdda_qrefs_0p875 = "/soc@0/rsc@179c0000/pm8998-rpmh-regulators/ldo1";
-		vdda_pcie_core = "/soc@0/rsc@179c0000/pm8998-rpmh-regulators/ldo1";
-		vdda_pll_cc_ebi01 = "/soc@0/rsc@179c0000/pm8998-rpmh-regulators/ldo1";
-		vdda_pll_cc_ebi23 = "/soc@0/rsc@179c0000/pm8998-rpmh-regulators/ldo1";
-		vdda_sp_sensor = "/soc@0/rsc@179c0000/pm8998-rpmh-regulators/ldo1";
-		vdda_ufs1_core = "/soc@0/rsc@179c0000/pm8998-rpmh-regulators/ldo1";
-		vdda_ufs2_core = "/soc@0/rsc@179c0000/pm8998-rpmh-regulators/ldo1";
-		vdda_usb1_ss_core = "/soc@0/rsc@179c0000/pm8998-rpmh-regulators/ldo1";
-		vdda_usb2_ss_core = "/soc@0/rsc@179c0000/pm8998-rpmh-regulators/ldo1";
-		vreg_l1a_0p875 = "/soc@0/rsc@179c0000/pm8998-rpmh-regulators/ldo1";
-		vddpx_10 = "/soc@0/rsc@179c0000/pm8998-rpmh-regulators/ldo2";
-		vreg_l2a_1p2 = "/soc@0/rsc@179c0000/pm8998-rpmh-regulators/ldo2";
-		vreg_l3a_1p0 = "/soc@0/rsc@179c0000/pm8998-rpmh-regulators/ldo3";
-		vdd_wcss_cx = "/soc@0/rsc@179c0000/pm8998-rpmh-regulators/ldo5";
-		vdd_wcss_mx = "/soc@0/rsc@179c0000/pm8998-rpmh-regulators/ldo5";
-		vdda_wcss_pll = "/soc@0/rsc@179c0000/pm8998-rpmh-regulators/ldo5";
-		vreg_l5a_0p8 = "/soc@0/rsc@179c0000/pm8998-rpmh-regulators/ldo5";
-		vddpx_13 = "/soc@0/rsc@179c0000/pm8998-rpmh-regulators/ldo6";
-		vreg_l6a_1p8 = "/soc@0/rsc@179c0000/pm8998-rpmh-regulators/ldo6";
-		vreg_l7a_1p8 = "/soc@0/rsc@179c0000/pm8998-rpmh-regulators/ldo7";
-		vreg_l8a_1p2 = "/soc@0/rsc@179c0000/pm8998-rpmh-regulators/ldo8";
-		vreg_l9a_1p8 = "/soc@0/rsc@179c0000/pm8998-rpmh-regulators/ldo9";
-		vreg_l10a_1p8 = "/soc@0/rsc@179c0000/pm8998-rpmh-regulators/ldo10";
-		vreg_l11a_1p0 = "/soc@0/rsc@179c0000/pm8998-rpmh-regulators/ldo11";
-		vdd_qfprom = "/soc@0/rsc@179c0000/pm8998-rpmh-regulators/ldo12";
-		vdd_qfprom_sp = "/soc@0/rsc@179c0000/pm8998-rpmh-regulators/ldo12";
-		vdda_apc1_cs_1p8 = "/soc@0/rsc@179c0000/pm8998-rpmh-regulators/ldo12";
-		vdda_gfx_cs_1p8 = "/soc@0/rsc@179c0000/pm8998-rpmh-regulators/ldo12";
-		vdda_qrefs_1p8 = "/soc@0/rsc@179c0000/pm8998-rpmh-regulators/ldo12";
-		vdda_qusb_hs0_1p8 = "/soc@0/rsc@179c0000/pm8998-rpmh-regulators/ldo12";
-		vddpx_11 = "/soc@0/rsc@179c0000/pm8998-rpmh-regulators/ldo12";
-		vreg_l12a_1p8 = "/soc@0/rsc@179c0000/pm8998-rpmh-regulators/ldo12";
-		vddpx_2 = "/soc@0/rsc@179c0000/pm8998-rpmh-regulators/ldo13";
-		vreg_l13a_2p95 = "/soc@0/rsc@179c0000/pm8998-rpmh-regulators/ldo13";
-		vreg_l14a_1p88 = "/soc@0/rsc@179c0000/pm8998-rpmh-regulators/ldo14";
-		vreg_l15a_1p8 = "/soc@0/rsc@179c0000/pm8998-rpmh-regulators/ldo15";
-		vreg_l16a_2p7 = "/soc@0/rsc@179c0000/pm8998-rpmh-regulators/ldo16";
-		vreg_l17a_1p3 = "/soc@0/rsc@179c0000/pm8998-rpmh-regulators/ldo17";
-		vreg_l18a_2p7 = "/soc@0/rsc@179c0000/pm8998-rpmh-regulators/ldo18";
-		vreg_l19a_3p0 = "/soc@0/rsc@179c0000/pm8998-rpmh-regulators/ldo19";
-		vreg_l20a_2p95 = "/soc@0/rsc@179c0000/pm8998-rpmh-regulators/ldo20";
-		vreg_l21a_2p95 = "/soc@0/rsc@179c0000/pm8998-rpmh-regulators/ldo21";
-		vreg_l22a_2p85 = "/soc@0/rsc@179c0000/pm8998-rpmh-regulators/ldo22";
-		vreg_l23a_3p3 = "/soc@0/rsc@179c0000/pm8998-rpmh-regulators/ldo23";
-		vdda_qusb_hs0_3p1 = "/soc@0/rsc@179c0000/pm8998-rpmh-regulators/ldo24";
-		vreg_l24a_3p075 = "/soc@0/rsc@179c0000/pm8998-rpmh-regulators/ldo24";
-		vreg_l25a_3p3 = "/soc@0/rsc@179c0000/pm8998-rpmh-regulators/ldo25";
-		vdda_hp_pcie_1p2 = "/soc@0/rsc@179c0000/pm8998-rpmh-regulators/ldo26";
-		vdda_hv_ebi0 = "/soc@0/rsc@179c0000/pm8998-rpmh-regulators/ldo26";
-		vdda_hv_ebi1 = "/soc@0/rsc@179c0000/pm8998-rpmh-regulators/ldo26";
-		vdda_hv_ebi2 = "/soc@0/rsc@179c0000/pm8998-rpmh-regulators/ldo26";
-		vdda_hv_ebi3 = "/soc@0/rsc@179c0000/pm8998-rpmh-regulators/ldo26";
-		vdda_mipi_csi_1p25 = "/soc@0/rsc@179c0000/pm8998-rpmh-regulators/ldo26";
-		vdda_mipi_dsi0_1p2 = "/soc@0/rsc@179c0000/pm8998-rpmh-regulators/ldo26";
-		vdda_mipi_dsi1_1p2 = "/soc@0/rsc@179c0000/pm8998-rpmh-regulators/ldo26";
-		vdda_pcie_1p2 = "/soc@0/rsc@179c0000/pm8998-rpmh-regulators/ldo26";
-		vdda_ufs1_1p2 = "/soc@0/rsc@179c0000/pm8998-rpmh-regulators/ldo26";
-		vdda_ufs2_1p2 = "/soc@0/rsc@179c0000/pm8998-rpmh-regulators/ldo26";
-		vdda_usb1_ss_1p2 = "/soc@0/rsc@179c0000/pm8998-rpmh-regulators/ldo26";
-		vdda_usb2_ss_1p2 = "/soc@0/rsc@179c0000/pm8998-rpmh-regulators/ldo26";
-		vreg_l26a_1p2 = "/soc@0/rsc@179c0000/pm8998-rpmh-regulators/ldo26";
-		vreg_l28a_3p0 = "/soc@0/rsc@179c0000/pm8998-rpmh-regulators/ldo28";
-		vreg_lvs1a_1p8 = "/soc@0/rsc@179c0000/pm8998-rpmh-regulators/lvs1";
-		vreg_lvs2a_1p8 = "/soc@0/rsc@179c0000/pm8998-rpmh-regulators/lvs2";
-		vreg_bob = "/soc@0/rsc@179c0000/pmi8998-rpmh-regulators/bob";
-		vreg_s3c_0p6 = "/soc@0/rsc@179c0000/pm8005-rpmh-regulators/smps3";
-		intc = "/soc@0/interrupt-controller@17a00000";
-		slimbam = "/soc@0/dma-controller@17184000";
-		osm_l3 = "/soc@0/interconnect@17d41000";
-		cpufreq_hw = "/soc@0/cpufreq@17d43000";
-		wifi = "/soc@0/wifi@18800000";
-		cpu0_alert0 = "/thermal-zones/cpu0-thermal/trips/trip-point0";
-		cpu0_alert1 = "/thermal-zones/cpu0-thermal/trips/trip-point1";
-		cpu0_crit = "/thermal-zones/cpu0-thermal/trips/cpu_crit";
-		cpu1_alert0 = "/thermal-zones/cpu1-thermal/trips/trip-point0";
-		cpu1_alert1 = "/thermal-zones/cpu1-thermal/trips/trip-point1";
-		cpu1_crit = "/thermal-zones/cpu1-thermal/trips/cpu_crit";
-		cpu2_alert0 = "/thermal-zones/cpu2-thermal/trips/trip-point0";
-		cpu2_alert1 = "/thermal-zones/cpu2-thermal/trips/trip-point1";
-		cpu2_crit = "/thermal-zones/cpu2-thermal/trips/cpu_crit";
-		cpu3_alert0 = "/thermal-zones/cpu3-thermal/trips/trip-point0";
-		cpu3_alert1 = "/thermal-zones/cpu3-thermal/trips/trip-point1";
-		cpu3_crit = "/thermal-zones/cpu3-thermal/trips/cpu_crit";
-		cpu4_alert0 = "/thermal-zones/cpu4-thermal/trips/trip-point0";
-		cpu4_alert1 = "/thermal-zones/cpu4-thermal/trips/trip-point1";
-		cpu4_crit = "/thermal-zones/cpu4-thermal/trips/cpu_crit";
-		cpu5_alert0 = "/thermal-zones/cpu5-thermal/trips/trip-point0";
-		cpu5_alert1 = "/thermal-zones/cpu5-thermal/trips/trip-point1";
-		cpu5_crit = "/thermal-zones/cpu5-thermal/trips/cpu_crit";
-		cpu6_alert0 = "/thermal-zones/cpu6-thermal/trips/trip-point0";
-		cpu6_alert1 = "/thermal-zones/cpu6-thermal/trips/trip-point1";
-		cpu6_crit = "/thermal-zones/cpu6-thermal/trips/cpu_crit";
-		cpu7_alert0 = "/thermal-zones/cpu7-thermal/trips/trip-point0";
-		cpu7_alert1 = "/thermal-zones/cpu7-thermal/trips/trip-point1";
-		cpu7_crit = "/thermal-zones/cpu7-thermal/trips/cpu_crit";
-		aoss0_alert0 = "/thermal-zones/aoss0-thermal/trips/trip-point0";
-		cluster0_alert0 = "/thermal-zones/cluster0-thermal/trips/trip-point0";
-		cluster0_crit = "/thermal-zones/cluster0-thermal/trips/cluster0_crit";
-		cluster1_alert0 = "/thermal-zones/cluster1-thermal/trips/trip-point0";
-		cluster1_crit = "/thermal-zones/cluster1-thermal/trips/cluster1_crit";
-		gpu1_alert0 = "/thermal-zones/gpu-thermal-top/trips/trip-point0";
-		gpu2_alert0 = "/thermal-zones/gpu-thermal-bottom/trips/trip-point0";
-		aoss1_alert0 = "/thermal-zones/aoss1-thermal/trips/trip-point0";
-		q6_modem_alert0 = "/thermal-zones/q6-modem-thermal/trips/trip-point0";
-		mem_alert0 = "/thermal-zones/mem-thermal/trips/trip-point0";
-		wlan_alert0 = "/thermal-zones/wlan-thermal/trips/trip-point0";
-		q6_hvx_alert0 = "/thermal-zones/q6-hvx-thermal/trips/trip-point0";
-		camera_alert0 = "/thermal-zones/camera-thermal/trips/trip-point0";
-		video_alert0 = "/thermal-zones/video-thermal/trips/trip-point0";
-		modem_alert0 = "/thermal-zones/modem-thermal/trips/trip-point0";
-		vph_pwr = "/vph-pwr-regulator";
-		vreg_s4a_1p8 = "/pm8998-smps4";
+	pmi8998-rpmh-regulators {
+		compatible = "qcom,pmi8998-rpmh-regulators";
+		qcom,pmic-id = "b";
+
+		vdd-bob-supply = <&vph_pwr>;
+
+		vreg_bob: bob {
+			regulator-min-microvolt = <3312000>;
+			regulator-max-microvolt = <3600000>;
+			regulator-initial-mode = <RPMH_REGULATOR_MODE_AUTO>;
+			regulator-allow-bypass;
+		};
+	};
+
+	pm8005-rpmh-regulators {
+		compatible = "qcom,pm8005-rpmh-regulators";
+		qcom,pmic-id = "c";
+
+		vdd-s1-supply = <&vph_pwr>;
+		vdd-s2-supply = <&vph_pwr>;
+		vdd-s3-supply = <&vph_pwr>;
+		vdd-s4-supply = <&vph_pwr>;
+
+		vreg_s3c_0p6: smps3 {
+			regulator-min-microvolt = <600000>;
+			regulator-max-microvolt = <600000>;
+		};
+	};
+};
+
+&cdsp_pas {
+	status = "okay";
+	firmware-name = "qcom/sdm845/cdsp.mdt";
+};
+
+&dsi0 {
+	status = "okay";
+	vdda-supply = <&vdda_mipi_dsi0_1p2>;
+
+	qcom,dual-dsi-mode;
+	qcom,master-dsi;
+
+	#address-cells = <1>;
+	#size-cells = <0>;
+
+	ports {
+		port@1 {
+			endpoint {
+				remote-endpoint = <&truly_in_0>;
+				data-lanes = <0 1 2 3>;
+			};
+		};
+	};
+
+	panel@0 {
+		compatible = "truly,nt35597-2K-display";
+		reg = <0>;
+		vdda-supply = <&vreg_l14a_1p88>;
+
+		reset-gpios = <&tlmm 6 GPIO_ACTIVE_LOW>;
+		mode-gpios = <&tlmm 52 GPIO_ACTIVE_HIGH>;
+
+		ports {
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			port@0 {
+				reg = <0>;
+				truly_in_0: endpoint {
+					remote-endpoint = <&dsi0_out>;
+				};
+			};
+
+			port@1 {
+				reg = <1>;
+				truly_in_1: endpoint {
+					remote-endpoint = <&dsi1_out>;
+				};
+			};
+		};
+	};
+};
+
+&dsi0_phy {
+	status = "okay";
+	vdds-supply = <&vdda_mipi_dsi0_pll>;
+};
+
+&dsi1 {
+	status = "okay";
+	vdda-supply = <&vdda_mipi_dsi1_1p2>;
+
+	qcom,dual-dsi-mode;
+
+	/* DSI1 is slave, so use DSI0 clocks */
+	assigned-clock-parents = <&dsi0_phy 0>, <&dsi0_phy 1>;
+
+	ports {
+		port@1 {
+			endpoint {
+				remote-endpoint = <&truly_in_1>;
+				data-lanes = <0 1 2 3>;
+			};
+		};
+	};
+};
+
+&dsi1_phy {
+	status = "okay";
+	vdds-supply = <&vdda_mipi_dsi1_pll>;
+};
+
+&gcc {
+	protected-clocks = <GCC_QSPI_CORE_CLK>,
+			   <GCC_QSPI_CORE_CLK_SRC>,
+			   <GCC_QSPI_CNOC_PERIPH_AHB_CLK>,
+			   <GCC_LPASS_Q6_AXI_CLK>,
+			   <GCC_LPASS_SWAY_CLK>;
+};
+
+&gpu {
+	zap-shader {
+		memory-region = <&gpu_mem>;
+		firmware-name = "qcom/sdm845/a630_zap.mbn";
+	};
+};
+
+&i2c10 {
+	status = "okay";
+	clock-frequency = <400000>;
+};
+
+&ipa {
+	status = "okay";
+	memory-region = <&ipa_fw_mem>;
+};
+
+&mdss {
+	status = "okay";
+};
+
+&mdss_mdp {
+	status = "okay";
+};
+
+&mss_pil {
+	status = "okay";
+	firmware-name = "qcom/sdm845/mba.mbn", "qcom/sdm845/modem.mbn";
+};
+
+&qupv3_id_1 {
+	status = "okay";
+};
+
+&sdhc_2 {
+	status = "okay";
+
+	pinctrl-names = "default";
+	pinctrl-0 = <&sdc2_clk &sdc2_cmd &sdc2_data &sd_card_det_n>;
+
+	vmmc-supply = <&vreg_l21a_2p95>;
+	vqmmc-supply = <&vddpx_2>;
+
+	cd-gpios = <&tlmm 126 GPIO_ACTIVE_LOW>;
+};
+
+&uart9 {
+	status = "okay";
+};
+
+&ufs_mem_hc {
+	status = "okay";
+
+	reset-gpios = <&tlmm 150 GPIO_ACTIVE_LOW>;
+
+	vcc-supply = <&vreg_l20a_2p95>;
+	vcc-max-microamp = <600000>;
+};
+
+&ufs_mem_phy {
+	status = "okay";
+
+	vdda-phy-supply = <&vdda_ufs1_core>;
+	vdda-pll-supply = <&vdda_ufs1_1p2>;
+};
+
+&usb_1 {
+	status = "okay";
+};
+
+&usb_1_dwc3 {
+	/* Until we have Type C hooked up we'll force this as peripheral. */
+	dr_mode = "peripheral";
+};
+
+&usb_1_hsphy {
+	status = "okay";
+
+	vdd-supply = <&vdda_usb1_ss_core>;
+	vdda-pll-supply = <&vdda_qusb_hs0_1p8>;
+	vdda-phy-dpdm-supply = <&vdda_qusb_hs0_3p1>;
+
+	qcom,imp-res-offset-value = <8>;
+	qcom,hstx-trim-value = <QUSB2_V2_HSTX_TRIM_21_6_MA>;
+	qcom,preemphasis-level = <QUSB2_V2_PREEMPHASIS_5_PERCENT>;
+	qcom,preemphasis-width = <QUSB2_V2_PREEMPHASIS_WIDTH_HALF_BIT>;
+};
+
+&usb_1_qmpphy {
+	status = "okay";
+
+	vdda-phy-supply = <&vdda_usb1_ss_1p2>;
+	vdda-pll-supply = <&vdda_usb1_ss_core>;
+};
+
+&usb_2 {
+	status = "okay";
+};
+
+&usb_2_dwc3 {
+	/*
+	 * Though the USB block on SDM845 can support host, there's no vbus
+	 * signal for this port on MTP.  Thus (unless you have a non-compliant
+	 * hub that works without vbus) the only sensible thing is to force
+	 * peripheral mode.
+	 */
+	dr_mode = "peripheral";
+};
+
+&usb_2_hsphy {
+	status = "okay";
+
+	vdd-supply = <&vdda_usb2_ss_core>;
+	vdda-pll-supply = <&vdda_qusb_hs0_1p8>;
+	vdda-phy-dpdm-supply = <&vdda_qusb_hs0_3p1>;
+
+	qcom,imp-res-offset-value = <8>;
+	qcom,hstx-trim-value = <QUSB2_V2_HSTX_TRIM_22_8_MA>;
+};
+
+&usb_2_qmpphy {
+	status = "okay";
+
+	vdda-phy-supply = <&vdda_usb2_ss_1p2>;
+	vdda-pll-supply = <&vdda_usb2_ss_core>;
+};
+
+&wifi {
+	status = "okay";
+	vdd-0.8-cx-mx-supply = <&vreg_l5a_0p8>;
+	vdd-1.8-xo-supply = <&vreg_l7a_1p8>;
+	vdd-1.3-rfa-supply = <&vreg_l17a_1p3>;
+	vdd-3.3-ch0-supply = <&vreg_l25a_3p3>;
+
+	qcom,snoc-host-cap-8bit-quirk;
+};
+
+/* PINCTRL - additions to nodes defined in sdm845.dtsi */
+
+&qup_i2c10_default {
+	pinconf {
+		pins = "gpio55", "gpio56";
+		drive-strength = <2>;
+		bias-disable;
+	};
+};
+
+&qup_uart9_default {
+	pinconf-tx {
+		pins = "gpio4";
+		drive-strength = <2>;
+		bias-disable;
+	};
+
+	pinconf-rx {
+		pins = "gpio5";
+		drive-strength = <2>;
+		bias-pull-up;
+	};
+};
+
+&tlmm {
+	gpio-reserved-ranges = <0 4>, <81 4>;
+
+	sdc2_clk: sdc2-clk {
+		pinconf {
+			pins = "sdc2_clk";
+			bias-disable;
+
+			/*
+			 * It seems that mmc_test reports errors if drive
+			 * strength is not 16 on clk, cmd, and data pins.
+			 */
+			drive-strength = <16>;
+		};
+	};
+
+	sdc2_cmd: sdc2-cmd {
+		pinconf {
+			pins = "sdc2_cmd";
+			bias-pull-up;
+			drive-strength = <16>;
+		};
+	};
+
+	sdc2_data: sdc2-data {
+		pinconf {
+			pins = "sdc2_data";
+			bias-pull-up;
+			drive-strength = <16>;
+		};
+	};
+
+	sd_card_det_n: sd-card-det-n {
+		pinmux {
+			pins = "gpio126";
+			function = "gpio";
+		};
+
+		pinconf {
+			pins = "gpio126";
+			bias-pull-up;
+		};
 	};
 };
