@@ -5614,9 +5614,9 @@
 
 		user4 {
 			label = "green:user4";
-			gpios = <0xc3 0x0a 0x00>;
-			linux,default-trigger = "panic-indicator";
+			gpios = <&pm8150_gpios 10 GPIO_ACTIVE_HIGH>;
 			default-state = "off";
+			panic-indicator;
 		};
 
 		wlan {
