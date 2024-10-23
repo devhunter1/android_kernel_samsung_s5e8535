@@ -18,6 +18,7 @@ export TARGET_SOC=s5e8535
 export ANDROID_MAJOR_VERSION
 LLVM := 1
 LLVM_IAS := 1
+export DEPMOD=depmod
 
 # *DOCUMENTATION*
 # To see a list of typical targets execute "make help"
