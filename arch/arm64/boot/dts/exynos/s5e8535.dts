@@ -2593,6 +2593,7 @@
 		samsung,sys-acp-con = <0x404 0x10000>;
 		samsung,rate-pcmc = <0x3197500 0x2ee0000 0x2ee0000>;
 		samsung,abox-llc-way = <0x06 0x0a 0x00 0x00>;
+		samsung,conf-file-name = "abox_solution.conf", "abox_system.conf";
 		phandle = <0x13d>;
 
 		abox-core@14e55000 {
