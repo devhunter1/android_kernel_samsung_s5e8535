@@ -32,7 +32,7 @@ struct ifpo_info {
 
 static struct ifpo_info ifpo;
 
-int gpex_ifpo_power_down()
+int gpex_ifpo_power_down(void)
 {
 	int ret = 0;
 
@@ -52,7 +52,7 @@ int gpex_ifpo_power_down()
 	return ret;
 }
 
-int gpex_ifpo_power_up()
+int gpex_ifpo_power_up(void)
 {
 	int ret = 0;
 
@@ -83,7 +83,7 @@ ifpo_mode gpex_ifpo_get_mode()
 	return ifpo.mode;
 }
 
-int gpex_ifpo_init()
+int gpex_ifpo_init(void)
 {
 	ifpo.mode = (ifpo_mode)gpexbe_devicetree_get_int(gpu_inter_frame_pm);
 
@@ -95,7 +95,7 @@ int gpex_ifpo_init()
 	return 0;
 }
 
-void gpex_ifpo_term()
+void gpex_ifpo_term(void)
 {
 	ifpo.mode = IFPO_DISABLED;
 

@@ -3288,12 +3288,12 @@ void mcsc_hw_s_dtp(struct pablo_mmio *base, enum mcsc_dtp_id id, u32 enable,
 	/* Not support */
 }
 
-int mcsc_hw_g_rdma_max_cnt()
+int mcsc_hw_g_rdma_max_cnt(void)
 {
         return MCSC_RDMA_MAX;
 }
 
-int mcsc_hw_g_wdma_max_cnt()
+int mcsc_hw_g_wdma_max_cnt(void)
 {
         return MCSC_WDMA_MAX;
 }

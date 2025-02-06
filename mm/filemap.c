@@ -2988,7 +2988,7 @@ static void filemap_tracing_mark_begin(struct file *file,
 	tracing_mark_begin("%d , %s , %lu , %d", sync, path, offset, size);
 }
 
-static void filemap_tracing_mark_end()
+static void filemap_tracing_mark_end(void)
 {
     tracing_mark_end();
 }
