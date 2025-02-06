@@ -41,7 +41,7 @@ struct _hvc_info {
 
 static struct _hvc_info hvc_info;
 
-int gpexbe_hvc_protection_enable()
+int gpexbe_hvc_protection_enable(void)
 {
 	int err;
 	unsigned long flags;
@@ -68,7 +68,7 @@ int gpexbe_hvc_protection_enable()
 	return err;
 }
 
-int gpexbe_hvc_protection_disable()
+int gpexbe_hvc_protection_disable(void)
 {
 	int err;
 	unsigned long flags;
@@ -98,14 +98,14 @@ int gpexbe_hvc_protection_disable()
 /*
 	hvc power on notifcation is not needed for new secure hardware
 */
-void gpexbe_hvc_notify_power_on()
+void gpexbe_hvc_notify_power_on(void)
 {
 }
 
 /*
 	 hvc power off notifcation is not needed for new secure hardware
 */
-void gpexbe_hvc_notify_power_off()
+void gpexbe_hvc_notify_power_off(void)
 {
 }
 

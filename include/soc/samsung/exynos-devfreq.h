@@ -255,7 +255,7 @@ struct exynos_profile_data {
 };
 
 #if IS_ENABLED(CONFIG_EXYNOS_ALT_DVFS)
-extern exynos_devfreq_alt_mode_change(unsigned int devfreq_type, int new_mode);
+extern int exynos_devfreq_alt_mode_change(unsigned int devfreq_type, int new_mode);
 extern void exynos_alt_call_chain(void);
 #endif
 

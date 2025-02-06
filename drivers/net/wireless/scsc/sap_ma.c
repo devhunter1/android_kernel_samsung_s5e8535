@@ -41,12 +41,12 @@ static int sap_ma_notifier(struct slsi_dev *sdev, unsigned long event);
 
 static DEFINE_SPINLOCK(sap_ma_lock);
 
-void slsi_sap_ma_lock()
+void slsi_sap_ma_lock(void)
 {
 	spin_lock_bh(&sap_ma_lock);
 }
 
-void slsi_sap_ma_unlock()
+void slsi_sap_ma_unlock(void)
 {
 	spin_unlock_bh(&sap_ma_lock);
 }
