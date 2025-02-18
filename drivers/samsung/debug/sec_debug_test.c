@@ -2049,7 +2049,7 @@ static void simulate_UBSAN_OOB_PTR(char **argv, int argc)
 
 static void secdbg_fpsimd_save_state(struct user_fpsimd_state *state)
 {
-	asm volatile(
+	asm volatile(".arch_extension fp\n"
 	"	stp	q0, q1, [%0, #16 * 0]	\n"
 	"	stp	q2, q3, [%0, #16 * 2]	\n"
 	"	stp	q4, q5, [%0, #16 * 4]	\n"
@@ -2073,7 +2073,7 @@ static void secdbg_fpsimd_save_state(struct user_fpsimd_state *state)
 
 static void secdbg_fpsimd_load_state(struct user_fpsimd_state *state)
 {
-	asm volatile(
+	asm volatile(".arch_extension fp\n"
 	"	ldp	q0, q1, [%0, #16 * 0]	\n"
 	"	ldp	q2, q3, [%0, #16 * 2]	\n"
 	"	ldp	q4, q5, [%0, #16 * 4]	\n"
