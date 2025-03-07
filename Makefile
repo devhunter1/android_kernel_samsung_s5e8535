@@ -8,6 +8,9 @@ NAME = Trick or Treat
 ## Platform
 export PLATFORM_VERSION=15
 
+## SOC
+export TARGET_SOC=s5e8535
+
 # *DOCUMENTATION*
 # To see a list of typical targets execute "make help"
 # More info can be located in ./README
