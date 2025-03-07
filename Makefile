@@ -5,6 +5,9 @@ SUBLEVEL = 176
 EXTRAVERSION =
 NAME = Trick or Treat
 
+## Platform
+export PLATFORM_VERSION=15
+
 # *DOCUMENTATION*
 # To see a list of typical targets execute "make help"
 # More info can be located in ./README
