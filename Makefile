@@ -11,6 +11,12 @@ export PLATFORM_VERSION=13
 ## SOC
 export TARGET_SOC=s5e8535
 
+## Kernel branch (AOSP)
+export BRANCH=android13-5.15
+
+## KMI
+export KMI_GENERATION=8
+
 # *DOCUMENTATION*
 # To see a list of typical targets execute "make help"
 # More info can be located in ./README
