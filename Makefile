@@ -6,7 +6,7 @@ EXTRAVERSION =
 NAME = Trick or Treat
 
 ## Platform
-export PLATFORM_VERSION=13
+export PLATFORM_VERSION=15
 
 ## SOC
 export TARGET_SOC=s5e8535
