@@ -1,0 +1,3 @@
+[submodule "kernel_build"]
+	path = kernel_build
+	url = https://github.com/s5e8535/kernel_build_script.git
