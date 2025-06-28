@@ -420,7 +420,7 @@ static int exynos_sound_usb_pm_notifier(struct notifier_block *nb,
 	return NOTIFY_OK;
 }
 
-static void exynos_sound_usb_pm_noti_init()
+static void exynos_sound_usb_pm_noti_init(void)
 {
 	pr_info("%s\n", __func__);
 	init_completion(&usb_audio.resume_cmpl);
