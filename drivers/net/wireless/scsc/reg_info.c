@@ -161,7 +161,8 @@ int slsi_read_regulatory(struct slsi_dev *sdev)
 #if IS_ENABLED(CONFIG_SCSC_PCIE)
 	char *reg_file_t = "slsi_reg_database.bin";
 #else
-	char *reg_file_t = "../etc/wifi/slsi_reg_database.bin";
+	char *reg_file_t = "wifi/slsi_reg_database.bin";
+	char *reg_file_t_legacy = "../etc/wifi/slsi_reg_database.bin";
 #endif
 	int i = 0, j = 0, index = 0;
 	u32 num_freqbands = 0, num_rules = 0, num_collections = 0;
@@ -181,8 +182,12 @@ int slsi_read_regulatory(struct slsi_dev *sdev)
 	r = mx140_request_file(sdev->maxwell_core, reg_file_t, &firm);
 	if (r) {
 		SLSI_INFO(sdev, "Error Loading %s file %d\n", reg_file_t, r);
-		sdev->regdb.regdb_state = SLSI_REG_DB_ERROR;
-		return -EINVAL;
+		r = mx140_request_file(sdev->maxwell_core, reg_file_t_legacy, &firm);
+		if (r) {
+		        SLSI_INFO(sdev, "Error Loading 2nd %s file %d\n", reg_file_t_legacy, r);
+		        sdev->regdb.regdb_state = SLSI_REG_DB_ERROR;
+		        return -EINVAL;
+		}
 	}
 
 	if (firmware_read(firm, &script_version, sizeof(uint32_t), &offset) < 0) {
