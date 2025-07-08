@@ -33,6 +33,7 @@ extern void dbg_snapshot_ecc_dump(bool call_panic);
 extern int dbg_snapshot_start_watchdog(int sec);
 extern int dbg_snapshot_expire_watchdog(void);
 extern int dbg_snapshot_expire_watchdog_timeout(int tick);
+extern int dbg_snapshot_expire_watchdog_with_msg(const char *fmt, ...);
 extern int dbg_snapshot_expire_watchdog_safely(void);
 extern int dbg_snapshot_expire_watchdog_timeout_safely(int tick);
 extern int dbg_snapshot_kick_watchdog(void);
@@ -274,6 +275,7 @@ enum dss_item_index {
 	DSS_ITEM_ARRDUMP_PANIC_ID,
 	DSS_ITEM_FIRST_ID,
 	DSS_ITEM_BACKTRACE_ID,
+	DSS_ITEM_WDTMSG_ID,
 };
 
 enum dss_log_item_indx {

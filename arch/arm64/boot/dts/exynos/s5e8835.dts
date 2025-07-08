@@ -5602,6 +5602,7 @@
 		samsung,sys-acp-con = <0x404 0x10000>;
 		samsung,rate-pcmc = <0x3197500 0x2ee0000 0x2ee0000>;
 		samsung,abox-llc-way = <0x04 0x04 0x00 0x00>;
+		samsung,conf-file-name = "abox_solution.conf", "abox_system.conf";
 		phandle = <0x1c7>;
 
 		abox-core@14e55000 {
@@ -9837,7 +9838,7 @@
 		reg = <0x00 0x10090000 0x1000>;
 		samsung,pwm-outputs = <0x00 0x01 0x02 0x03 0x04>;
 		#pwm-cells = <0x03>;
-		clocks = <0x52 0x1a6 0x52 0x01>;
+		clocks = <0x52 0x1a6 0x52 0x02>;
 		clock-names = "pwm_pclk", "pwm_sclk";
 		status = "okay";
 		phandle = <0x25a>;

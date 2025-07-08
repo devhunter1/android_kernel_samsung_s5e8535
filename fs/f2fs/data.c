@@ -1137,7 +1137,8 @@ int f2fs_reserve_new_blocks(struct dnode_of_data *dn, blkcnt_t count)
 
 	if (unlikely(is_inode_flag_set(dn->inode, FI_NO_ALLOC)))
 		return -EPERM;
-	if (unlikely((err = inc_valid_block_count(sbi, dn->inode, &count))))
+	err = inc_valid_block_count(sbi, dn->inode, &count, true);
+	if (unlikely(err))
 		return err;
 
 	trace_f2fs_reserve_new_blocks(dn->inode, dn->nid,
@@ -1413,7 +1414,7 @@ static int __allocate_data_block(struct dnode_of_data *dn, int seg_type)
 	if (dn->data_blkaddr != NULL_ADDR)
 		goto alloc;
 
-	if (unlikely((err = inc_valid_block_count(sbi, dn->inode, &count))))
+	if (unlikely((err = inc_valid_block_count(sbi, dn->inode, &count, true))))
 		return err;
 
 alloc:
@@ -1605,9 +1606,7 @@ next_block:
 			blkaddr = dn.data_blkaddr;
 		} else {
 			if (f2fs_compressed_file(inode) &&
-					f2fs_sanity_check_cluster(&dn) &&
-					(flag != F2FS_GET_BLOCK_FIEMAP ||
-					IS_ENABLED(CONFIG_F2FS_CHECK_FS))) {
+					f2fs_sanity_check_cluster(&dn)) {
 				err = -EFSCORRUPTED;
 				f2fs_handle_error(sbi,
 						ERROR_CORRUPTED_CLUSTER);
@@ -2041,20 +2040,28 @@ static inline loff_t f2fs_readpage_limit(struct inode *inode)
 	return i_size_read(inode);
 }
 
+struct map_blocks_container {
+	struct f2fs_map_blocks orig;
+	struct f2fs_map_blocks cow;
+};
+
 static int f2fs_read_single_page(struct inode *inode, struct page *page,
 					unsigned nr_pages,
-					struct f2fs_map_blocks *map,
+					struct f2fs_map_blocks *orig_map,
 					struct bio **bio_ret,
 					sector_t *last_block_in_bio,
 					bool is_readahead)
 {
 	struct bio *bio = *bio_ret;
 	const unsigned blocksize = blks_to_bytes(inode, 1);
+	struct map_blocks_container *map_container;
+	struct f2fs_map_blocks *map;
 	sector_t block_in_file;
 	sector_t last_block;
 	sector_t last_block_in_file;
 	sector_t block_nr;
 	int ret = 0;
+	bool use_cow = false;
 
 	block_in_file = (sector_t)page_index(page);
 	last_block = block_in_file + nr_pages;
@@ -2069,6 +2076,14 @@ static int f2fs_read_single_page(struct inode *inode, struct page *page,
 	/*
 	 * Map blocks using the previous result first.
 	 */
+	if (f2fs_is_atomic_file(inode)) {
+		map_container = container_of(orig_map, struct map_blocks_container, orig);
+		map = &map_container->cow;
+		use_cow = true;
+	} else {
+		map = orig_map;
+	}
+check_prev_map:
 	if ((map->m_flags & F2FS_MAP_MAPPED) &&
 			block_in_file > map->m_lblk &&
 			block_in_file < (map->m_lblk + map->m_len))
@@ -2081,7 +2096,10 @@ static int f2fs_read_single_page(struct inode *inode, struct page *page,
 	map->m_lblk = block_in_file;
 	map->m_len = last_block - block_in_file;
 
-	ret = f2fs_map_blocks(inode, map, 0, F2FS_GET_BLOCK_DEFAULT);
+	if (use_cow)
+		ret = f2fs_map_blocks(F2FS_I(inode)->cow_inode, map, 0, F2FS_GET_BLOCK_DEFAULT);
+	else
+		ret = f2fs_map_blocks(inode, map, 0, F2FS_GET_BLOCK_DEFAULT);
 	if (ret)
 		goto out;
 got_it:
@@ -2102,6 +2120,10 @@ got_it:
 						ERROR_INVALID_BLKADDR);
 			goto out;
 		}
+	} else if (use_cow) {
+		map = orig_map;
+		use_cow = false;
+		goto check_prev_map;
 	} else {
 zero_out:
 		zero_user_segment(page, 0, PAGE_SIZE);
@@ -2330,6 +2352,17 @@ out:
 }
 #endif
 
+static void initiate_map_blocks(struct f2fs_map_blocks *map)
+{
+	map->m_pblk = 0;
+	map->m_lblk = 0;
+	map->m_len = 0;
+	map->m_flags = 0;
+	map->m_next_pgofs = NULL;
+	map->m_next_extent = NULL;
+	map->m_seg_type = NO_CHECK_TYPE;
+	map->m_may_create = false;
+}
 /*
  * This function was originally taken from fs/mpage.c, and customized for f2fs.
  * Major change was from block_size == page_size in f2fs by default.
@@ -2339,7 +2372,7 @@ static int f2fs_mpage_readpages(struct inode *inode,
 {
 	struct bio *bio = NULL;
 	sector_t last_block_in_bio = 0;
-	struct f2fs_map_blocks map;
+	struct map_blocks_container map_container;
 #ifdef CONFIG_F2FS_FS_COMPRESSION
 	struct compress_ctx cc = {
 		.inode = inode,
@@ -2357,14 +2390,9 @@ static int f2fs_mpage_readpages(struct inode *inode,
 	unsigned max_nr_pages = nr_pages;
 	int ret = 0;
 
-	map.m_pblk = 0;
-	map.m_lblk = 0;
-	map.m_len = 0;
-	map.m_flags = 0;
-	map.m_next_pgofs = NULL;
-	map.m_next_extent = NULL;
-	map.m_seg_type = NO_CHECK_TYPE;
-	map.m_may_create = false;
+	initiate_map_blocks(&map_container.orig);
+	if (f2fs_is_atomic_file(inode))
+		initiate_map_blocks(&map_container.cow);
 
 	for (; nr_pages; nr_pages--) {
 		if (rac) {
@@ -2412,7 +2440,7 @@ static int f2fs_mpage_readpages(struct inode *inode,
 read_single_page:
 #endif
 
-		ret = f2fs_read_single_page(inode, page, max_nr_pages, &map,
+		ret = f2fs_read_single_page(inode, page, max_nr_pages, &map_container.orig,
 					&bio, &last_block_in_bio, rac);
 		if (ret) {
 #ifdef CONFIG_F2FS_FS_COMPRESSION
@@ -2635,13 +2663,10 @@ int f2fs_do_write_data_page(struct f2fs_io_info *fio)
 	struct extent_info ei = {0, };
 	struct node_info ni;
 	bool ipu_force = false;
-	bool atomic_commit;
 	int err = 0;
 
 	/* Use COW inode to make dnode_of_data for atomic write */
-	atomic_commit = f2fs_is_atomic_file(inode) &&
-				page_private_atomic(fio->page);
-	if (atomic_commit)
+	if (f2fs_is_atomic_file(inode))
 		set_new_dnode(&dn, F2FS_I(inode)->cow_inode, NULL, NULL, 0);
 	else
 		set_new_dnode(&dn, inode, NULL, NULL, 0);
@@ -2754,8 +2779,6 @@ got_it:
 	if (page->index == 0)
 		set_inode_flag(inode, FI_FIRST_BLOCK_WRITTEN);
 
-	if (atomic_commit)
-		clear_page_private_atomic(page);
 out_writepage:
 	f2fs_put_dnode(&dn);
 out:
@@ -2801,6 +2824,8 @@ int f2fs_write_single_data_page(struct page *page, int *submitted,
 	};
 
 	trace_f2fs_writepage(page, DATA);
+
+	f2fs_cond_set_fua(&fio);
 
 	/* we should bypass data pages to proceed the kworker jobs */
 	if (unlikely(f2fs_cp_error(sbi))) {
@@ -3807,9 +3832,6 @@ static int f2fs_write_end(struct file *file,
 		goto unlock_out;
 
 	set_page_dirty(page);
-
-	if (f2fs_is_atomic_file(inode))
-		set_page_private_atomic(page);
 
 	if (pos + copied > i_size_read(inode) &&
 	    !f2fs_verity_in_progress(inode)) {

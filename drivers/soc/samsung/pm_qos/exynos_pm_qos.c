@@ -1004,16 +1004,27 @@ static inline int exynos_pm_qos_get_value(struct exynos_pm_qos_constraints *c)
 {
 	struct plist_node *node;
 	int total_value = 0;
+	struct exynos_pm_qos_request *req;
 
 	if (plist_head_empty(&c->list))
 		return c->no_constraint_value;
 
 	switch (c->type) {
 	case EXYNOS_PM_QOS_MIN:
-		return plist_first(&c->list)->prio;
+		list_for_each_entry(node, &c->list.node_list, node_list) {
+			req = container_of(node, struct exynos_pm_qos_request, node);
+			if (!req->nosync)
+				break;
+		}
+		return node->prio;
 
 	case EXYNOS_PM_QOS_MAX:
-		return plist_last(&c->list)->prio;
+		list_for_each_entry_reverse(node, &c->list.node_list, node_list) {
+			req = container_of(node, struct exynos_pm_qos_request, node);
+			if (!req->nosync)
+				break;
+		}
+		return node->prio;
 
 	case EXYNOS_PM_QOS_SUM:
 		plist_for_each(node, &c->list)
@@ -1111,7 +1122,9 @@ void show_exynos_pm_qos_data(int index)
 	plist_for_each_entry(req, &c->list, node) {
 		char *state = "Default";
 
-		if ((req->node).prio != c->default_value) {
+		if (req->nosync) {
+			state = "Inactive";
+		} else if ((req->node).prio != c->default_value) {
 			active_reqs++;
 			state = "Active";
 		} else {
@@ -1310,6 +1323,8 @@ int exynos_pm_qos_update_target(struct exynos_pm_qos_constraints *c, struct plis
 		mutex_lock(&c->mlock);
 	spin_lock_irqsave(&c->lock, flags);
 
+	req->nosync = nosync;
+
 	prev_value = exynos_pm_qos_get_value(c);
 	if (value == EXYNOS_PM_QOS_DEFAULT_VALUE)
 		new_value = c->default_value;
@@ -1342,6 +1357,9 @@ int exynos_pm_qos_update_target(struct exynos_pm_qos_constraints *c, struct plis
 	curr_value = exynos_pm_qos_get_value(c);
 	exynos_pm_qos_set_value(c, curr_value);
 
+	// Save PM QoS Log
+	exynos_pm_qos_update_log(c, req, action);
+
 	spin_unlock_irqrestore(&c->lock, flags);
 
 //	trace_pm_qos_update_target((enum pm_qos_req_action)action, prev_value, curr_value);
@@ -1354,9 +1372,6 @@ int exynos_pm_qos_update_target(struct exynos_pm_qos_constraints *c, struct plis
 	} else {
 		ret = 0;
 	}
-
-	// Save PM QoS Log
-	exynos_pm_qos_update_log(c, req, action);
 
 	if (!nosync)
 		mutex_unlock(&c->mlock);
@@ -1564,7 +1579,7 @@ static int register_pm_qos_misc(struct exynos_pm_qos_object *qos, struct dentry 
 			    &exynos_pm_qos_debug_fops);
 
 	qos->kobj_attr.attr.name = qos->name;
-	qos->kobj_attr.attr.mode = 0400;
+	qos->kobj_attr.attr.mode = 0444;
 	qos->kobj_attr.show = exynos_pm_qos_sysfs_show;
 
 	// Create SYSFS file node to show PM QoS information
@@ -1573,7 +1588,7 @@ static int register_pm_qos_misc(struct exynos_pm_qos_object *qos, struct dentry 
 
 	snprintf(qos->bin_attr_name, sizeof(qos->bin_attr_name), "%s_log", qos->name);
 	qos->bin_attr.attr.name = qos->bin_attr_name;
-	qos->bin_attr.attr.mode = 0400;
+	qos->bin_attr.attr.mode = 0444;
 	qos->bin_attr.read = exynos_pm_qos_log_show;
 
 	if (sysfs_create_bin_file(kobj, &qos->bin_attr) < 0)

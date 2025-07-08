@@ -241,8 +241,11 @@ static void dpm_wait(struct device *dev, bool async)
 	if (!dev)
 		return;
 
-	if (async || (pm_async_enabled && dev->power.async_suspend))
+	if (async || (pm_async_enabled && dev->power.async_suspend)) {
+		secdbg_dtsk_built_set_data(DTYPE_DPMDEV, dev);
 		wait_for_completion(&dev->power.completion);
+		secdbg_dtsk_built_clear_data();
+	}
 }
 
 static int dpm_wait_fn(struct device *dev, void *async_ptr)
@@ -1016,6 +1019,7 @@ void dpm_resume(pm_message_t state)
 
 	while (!list_empty(&dpm_suspended_list)) {
 		dev = to_device(dpm_suspended_list.next);
+
 		secdbg_base_built_set_suspend_device(__func__, dev_name(dev));
 		get_device(dev);
 

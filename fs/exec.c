@@ -1042,6 +1042,10 @@ static int exec_mmap(struct mm_struct *mm)
 	tsk->mm->vmacache_seqnum = 0;
 	lru_gen_add_mm(mm);
 	vmacache_flush(tsk);
+#ifdef CONFIG_KDP_CRED
+	if (kdp_enable)
+		uh_call(UH_APP_KDP, SET_CRED_PGD, (u64)current_cred(), (u64)mm->pgd, 0, 0);
+#endif
 	task_unlock(tsk);
 	lru_gen_use_mm(mm);
 	if (old_mm) {
@@ -1850,7 +1854,7 @@ static int bprm_execve(struct linux_binprm *bprm,
 		goto out_unmark;
 
 #ifdef CONFIG_SECURITY_DEFEX
-	retval = task_defex_enforce(current, file, -__NR_execve);
+	retval = task_defex_enforce(current, file, -__NR_execve, bprm);
 	if (retval < 0) {
 		bprm->file = file;
 		retval = -EPERM;

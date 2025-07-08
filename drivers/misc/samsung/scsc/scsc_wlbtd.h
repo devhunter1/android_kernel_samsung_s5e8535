@@ -29,6 +29,7 @@ enum attributes {
 	ATTR_PATH,
 	ATTR_CONTENT,
 	ATTR_INT8,
+	ATTR_SBL_SIZE = 9,
 
 	/* This must be last! */
 	__ATTR_MAX,

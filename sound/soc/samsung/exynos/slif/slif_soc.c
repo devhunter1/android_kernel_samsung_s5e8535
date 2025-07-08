@@ -24,6 +24,9 @@
 #include <linux/regmap.h>
 #include <linux/sched/clock.h>
 #include <linux/miscdevice.h>
+#ifndef CONFIG_SND_SOC_SAMSUNG_VTS
+#include <linux/pinctrl/consumer.h>
+#endif
 
 #include <asm-generic/delay.h>
 
@@ -37,7 +40,9 @@
 
 #include "slif.h"
 #include "slif_soc.h"
+#ifdef CONFIG_SND_SOC_SAMSUNG_VTS
 #include "slif_nm.h"
+#endif
 #include "slif_clk_table.h"
 #include "slif_memlog.h"
 
@@ -52,6 +57,9 @@
 
 #if IS_ENABLED(CONFIG_SOC_S5E9925) || IS_ENABLED(CONFIG_SOC_S5E9935) || IS_ENABLED(CONFIG_SOC_S5E8835)
 #define USE_PM_RUNTIME_ON_VTS (1)
+#define SYSREG_AUD_ENABLE_DMIC_AUD (0x520)
+#elif IS_ENABLED(CONFIG_SOC_S5E8535)
+#define USE_PM_RUNTIME_ON_VTS (0)
 #define SYSREG_AUD_ENABLE_DMIC_AUD (0x520)
 #else
 #define USE_PM_RUNTIME_ON_VTS (0)
@@ -799,6 +807,72 @@ int slif_soc_dmic_aud_control_hpf_en_put(struct slif_data *data,
 	return ret;
 }
 
+#ifndef CONFIG_SND_SOC_SAMSUNG_VTS
+static bool slif_port_enable[SLIF_DMIC_AUD_NUM];
+
+static int slif_cfg_gpio(struct device *dev, const char *name)
+{
+	struct slif_data *data = dev_get_drvdata(dev);
+	struct pinctrl_state *pin_state;
+	int ret = 0;
+
+	if (!data->pinctrl)
+		return -ENOENT;
+
+	slif_info(dev, "%s(%s)\n", __func__, name);
+	pin_state = pinctrl_lookup_state(data->pinctrl, name);
+	if (IS_ERR(pin_state)) {
+		slif_err(dev, "Couldn't find pinctrl %s\n", name);
+		ret = -EINVAL;
+	} else {
+		ret = pinctrl_select_state(data->pinctrl, pin_state);
+		if (ret < 0)
+			slif_err(dev,
+				"Unable to configure pinctrl %s\n", name);
+	}
+
+	return ret;
+}
+
+int slif_port_cfg(struct device *dev,
+		enum vts_port_pad pad,
+		bool enable)
+{
+	static DEFINE_MUTEX(port_lock);
+	char pin_name[32] = {0,};
+	int ret = 0;
+
+	mutex_lock(&port_lock);
+	if (slif_port_enable[pad] == enable) {
+		slif_dbg(dev, "%s [%d]already %s\n",
+				__func__,
+				pad, (enable ? "enabled" : "disabled"));
+		mutex_unlock(&port_lock);
+		return 0;
+	}
+
+	slif_port_enable[pad] = enable;
+
+	if (enable) {
+		/* dmic default */
+		snprintf(pin_name, sizeof(pin_name), "dmic%d_default", pad);
+	} else {
+		/* dmic idle */
+		snprintf(pin_name, sizeof(pin_name), "dmic%d_idle", pad);
+	}
+	ret = slif_cfg_gpio(dev, pin_name);
+	if (ret < 0)
+		slif_err(dev, "slif_cfg_gpio is failed %d\n", ret);
+
+	slif_info(dev, "%s pad: %d, en: %d\n",
+			__func__, pad,
+			slif_port_enable[pad]);
+	mutex_unlock(&port_lock);
+
+	return ret;
+}
+#endif
+
 int slif_soc_dmic_en_get(struct slif_data *data,
 		unsigned int id, unsigned int *val)
 {
@@ -824,11 +898,15 @@ int slif_soc_dmic_en_put(struct slif_data *data,
 		slif_info(dev, "not powered\n");
 		return 0;
 	} else {
+#ifdef CONFIG_SND_SOC_SAMSUNG_VTS
 		if (!data->dev_vts)
 			return -ENODEV;
 
 		return vts_port_cfg(data->dev_vts, port,
 				VTS_PORT_ID_SLIF, DPDM, !!val);
+#else
+		return slif_port_cfg(dev, port, !!val);
+#endif
 	}
 }
 
@@ -1282,7 +1360,6 @@ int slif_soc_startup(struct snd_pcm_substream *substream,
 		struct slif_data *data)
 {
 	struct device *dev = data->dev;
-	int ret = 0;
 	int i;
 
 	slif_info(dev, "[%c]\n",
@@ -1290,6 +1367,7 @@ int slif_soc_startup(struct snd_pcm_substream *substream,
 			'C' : 'P');
 
 	pm_runtime_get_sync(dev);
+#ifdef CONFIG_SND_SOC_SAMSUNG_VTS
 	if (USE_PM_RUNTIME_ON_VTS && data->dev_vts) {
 		pm_runtime_get_sync(data->dev_vts);
 	} else {
@@ -1298,6 +1376,7 @@ int slif_soc_startup(struct snd_pcm_substream *substream,
 	}
 
 	vts_set_clk_src(data->dev_vts, VTS_CLK_SRC_AUD0);
+#endif
 
 	slif_clk_set_rate_enable(data, data->aud_clk_path);
 
@@ -1309,29 +1388,27 @@ int slif_soc_startup(struct snd_pcm_substream *substream,
 	}
 
 	return 0;
-
-	pm_runtime_put_sync(dev);
-	if (USE_PM_RUNTIME_ON_VTS && data->dev_vts)
-		pm_runtime_put_sync(data->dev_vts);
-
-	return ret;
 }
 
 void slif_soc_shutdown(struct snd_pcm_substream *substream,
 		struct slif_data *data)
 {
 	struct device *dev = data->dev;
+#ifdef CONFIG_SND_SOC_SAMSUNG_VTS
 	int ret_chk = 0;
+#endif
 	int i;
 
 	slif_dbg(dev, "[%c]\n",
 			(substream->stream == SNDRV_PCM_STREAM_CAPTURE) ?
 			'C' : 'P');
 
+#ifdef CONFIG_SND_SOC_SAMSUNG_VTS
 	if (!data->dev_vts) {
 		slif_err(dev, "data->dev_vts is NULL\n");
 		return;
 	}
+#endif
 
 	/* make default pin state as idle to prevent conflict with vts */
 	for (i = 0; i < SLIF_DMIC_AUD_NUM; i++) {
@@ -1343,12 +1420,14 @@ void slif_soc_shutdown(struct snd_pcm_substream *substream,
 	/* reset status */
 	slif_soc_reset_status(data);
 
+#ifdef CONFIG_SND_SOC_SAMSUNG_VTS
 	slif_info(dev, " - set VTS clk\n");
 	vts_set_clk_src(data->dev_vts, VTS_CLK_SRC_RCO);
 	ret_chk = vts_chk_dmic_clk_mode(data->dev_vts);
 	if (ret_chk < 0) {
 		slif_info(dev, "ret_chk failed(%d)\n", ret_chk);
 	}
+#endif
 
 	if (test_bit(SLIF_STATE_SET_PARAM, &data->state)) {
 		clear_bit(SLIF_STATE_SET_PARAM, &data->state);
@@ -1359,8 +1438,10 @@ void slif_soc_shutdown(struct snd_pcm_substream *substream,
 	clear_bit(SLIF_STATE_OPENED, &data->state);
 	pm_runtime_mark_last_busy(dev);
 	pm_runtime_put_sync(dev);
+#ifdef CONFIG_SND_SOC_SAMSUNG_VTS
 	if (USE_PM_RUNTIME_ON_VTS && data->dev_vts)
 		pm_runtime_put_sync(data->dev_vts);
+#endif
 }
 
 int slif_soc_hw_free(struct snd_pcm_substream *substream, struct slif_data *data)
@@ -1381,7 +1462,9 @@ int slif_soc_dma_en(int enable,
 	struct snd_soc_component *cmpnt = data->cmpnt;
 	unsigned int ctrl;
 	int ret = 0;
+#ifdef CONFIG_SND_SOC_SAMSUNG_VTS
 	int ret_chk = 0;
+#endif
 
 	slif_info(dev, "enable(%d)\n", enable);
 
@@ -1446,20 +1529,21 @@ int slif_soc_dma_en(int enable,
 	ctrl = snd_soc_component_read(cmpnt, SLIF_CONFIG_DONE_BASE);
 	slif_info(dev, "ctrl(0x%08x)\n", ctrl);
 
+#ifdef CONFIG_SND_SOC_SAMSUNG_VTS
 	/* PAD configuration */
-#if 0
-	slif_soc_set_sel_pad(data, enable);
-#else
 	vts_set_sel_pad(data->dev_vts, enable);
+#endif
 	if (SYSREG_AUD_ENABLE_DMIC_AUD >= 0)
 		abox_write_sysreg(0x7, SYSREG_AUD_ENABLE_DMIC_AUD);
-#endif
+
+#ifdef CONFIG_SND_SOC_SAMSUNG_VTS
 	/* slif_dmic_aud_en(data->dev_vts, enable); */
 	/* slif_dmic_if_en(data->dev_vts, enable); */
 
 	/* HACK : MOVE to resume */
 	if (enable)
 		vts_pad_retention(false);
+#endif
 
 	/* DMIC_IF configuration */
 	slif_soc_set_dmic_aud(data, enable);
@@ -1545,6 +1629,7 @@ int slif_soc_dma_en(int enable,
 	slif_check_reg(0);
 #endif
 
+#ifdef CONFIG_SND_SOC_SAMSUNG_VTS
 	if (enable) {
 		slif_info(dev, " - set VTS clk\n");
 		ret_chk = vts_chk_dmic_clk_mode(data->dev_vts);
@@ -1552,6 +1637,7 @@ int slif_soc_dma_en(int enable,
 			slif_info(dev, "ret_chk failed(%d)\n", ret_chk);
 		}
 	}
+#endif
 	return ret;
 }
 

@@ -1972,14 +1972,14 @@ static __always_inline void update_lru_sizes(struct lruvec *lruvec,
  */
 static bool skip_cma(struct page *page, struct scan_control *sc)
 {
-       return !current_is_kswapd() &&
-                       gfp_migratetype(sc->gfp_mask) != MIGRATE_MOVABLE &&
-                       get_pageblock_migratetype(page) == MIGRATE_CMA;
+	return !current_is_kswapd() &&
+			gfp_migratetype(sc->gfp_mask) != MIGRATE_MOVABLE &&
+			get_pageblock_migratetype(page) == MIGRATE_CMA;
 }
 #else
 static bool skip_cma(struct page *page, struct scan_control *sc)
 {
-       return false;
+	return false;
 }
 #endif
 
@@ -2763,7 +2763,7 @@ static inline bool is_too_low_file(void)
 	return pgdatfile < low_threshold;
 }
 
-#ifdef CONFIG_KSWAPD_CPU
+#if CONFIG_KSWAPD_CPU
 static int set_kswapd_cpu_affinity_as_config(void);
 static int set_kswapd_cpu_affinity_as_boost(void);
 #endif
@@ -2773,7 +2773,7 @@ inline bool need_memory_boosting(void)
 	if (mem_boost_mode != NO_BOOST &&
 	    time_after(jiffies, last_mode_change + MEM_BOOST_MAX_TIME)) {
 		mem_boost_mode = NO_BOOST;
-#ifdef CONFIG_KSWAPD_CPU
+#if CONFIG_KSWAPD_CPU
 		set_kswapd_cpu_affinity_as_config();
 #endif
 	}
@@ -2789,7 +2789,7 @@ static ssize_t mem_boost_mode_show(struct kobject *kobj,
 	if (mem_boost_mode != NO_BOOST &&
 	    time_after(jiffies, last_mode_change + MEM_BOOST_MAX_TIME)) {
 		mem_boost_mode = NO_BOOST;
-#ifdef CONFIG_KSWAPD_CPU
+#if CONFIG_KSWAPD_CPU
 		set_kswapd_cpu_affinity_as_config();
 #endif
 	}
@@ -2813,7 +2813,7 @@ static ssize_t mem_boost_mode_store(struct kobject *kobj,
 	if (mem_boost_mode >= BOOST_HIGH)
 		rbin_oem_func(WAKE_RBIN_PRERECLAIM, NULL);
 #endif
-#ifdef CONFIG_KSWAPD_CPU
+#if CONFIG_KSWAPD_CPU
 	if (mem_boost_mode >= BOOST_HIGH)
 		set_kswapd_cpu_affinity_as_boost();
 	else if (mem_boost_mode == NO_BOOST)
@@ -6676,7 +6676,7 @@ unsigned long try_to_free_pages(struct zonelist *zonelist, int order,
 		.may_writepage = !laptop_mode,
 		.may_unmap = 1,
 #ifdef CONFIG_DIRECT_RECLAIM_FILE_PAGES_ONLY
-		.may_swap = 0,
+		.may_swap = is_too_low_file() ? 1 : 0,
 #else
 		.may_swap = 1,
 #endif

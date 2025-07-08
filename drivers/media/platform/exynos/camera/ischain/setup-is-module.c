@@ -147,7 +147,11 @@ static int is_module_regulator_ctrl(struct is_module_regulator *imr,
 			merr("regulator_disable(%s) fail", module, name);
 			regulator_put(imr->regulator);
 			imr->regulator = NULL;
+#ifdef IGNORE_REGULATOR_DISABLE_FAIL
+			return 0;
+#else
 			return ret;
+#endif
 		}
 
 		regulator_put(imr->regulator);

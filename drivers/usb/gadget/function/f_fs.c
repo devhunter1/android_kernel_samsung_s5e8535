@@ -1801,7 +1801,7 @@ static void ffs_data_clear(struct ffs_data *ffs)
 
 	ffs_closed(ffs);
 
-	BUG_ON(ffs->gadget);
+	WARN_ON(ffs->gadget);
 
 	spin_lock_irqsave(&ffs->eps_lock, flags);
 	epfiles = ffs->epfiles;

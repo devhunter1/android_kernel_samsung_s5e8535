@@ -1562,6 +1562,7 @@ error:
 }
 
 #define POOL_PAGE_SIZE	32768
+#define REDUCED_CACHE_PAGE	100
 static int dit_init_page_pool(enum dit_direction dir, enum dit_desc_ring ring_num)
 {
 	struct dit_desc_info *desc_info;
@@ -1585,8 +1586,9 @@ static int dit_init_page_pool(enum dit_direction dir, enum dit_desc_ring ring_nu
 	num_pkt_per_page = POOL_PAGE_SIZE / max_pkt_size;
 	total_page_count = desc_info->dst_desc_ring_len / num_pkt_per_page;
 
-	desc_info->dst_page_pool[ring_num] = cpif_page_pool_create(total_page_count,
-						POOL_PAGE_SIZE);
+	desc_info->dst_page_pool[ring_num] =
+		cpif_page_pool_create((total_page_count - REDUCED_CACHE_PAGE),
+				      POOL_PAGE_SIZE);
 	if (unlikely(!desc_info->dst_page_pool[ring_num]))
 		return -ENOMEM;
 
@@ -1720,16 +1722,21 @@ static int dit_init_desc(enum dit_direction dir)
 		offset_hi = 0;
 
 		if (!desc_info->dst_desc_ring[ring_num]) {
+			int buf_alloc_try = 5;
+
 			buf_size = sizeof(struct dit_dst_desc) *
 				(desc_info->dst_desc_ring_len + DIT_DST_DESC_RING_LEN_PADDING);
 
-			if (dc->use_dma_map) {
-				buf = dma_alloc_coherent(dc->dev, buf_size,
-							 &desc_info->dst_desc_ring_daddr[ring_num],
-							 GFP_KERNEL);
-			} else {
-				buf = devm_kzalloc(dc->dev, buf_size, GFP_KERNEL);
-			}
+			do {
+				if (dc->use_dma_map) {
+					buf = dma_alloc_coherent(dc->dev, buf_size,
+								 &desc_info->dst_desc_ring_daddr[ring_num],
+								 GFP_KERNEL);
+				} else {
+					buf = devm_kzalloc(dc->dev, buf_size, GFP_KERNEL);
+				}
+			} while (!buf && (buf_alloc_try-- > 0));
+
 			if (!buf) {
 				mif_err("dit dir[%d] dst desc[%d] alloc failed\n", dir, ring_num);
 				return -ENOMEM;
@@ -2266,6 +2273,8 @@ static ssize_t debug_pktgen_ch_store(struct device *dev,
 	ret = kstrtoint(buf, 0, &ch);
 	if (ret)
 		return -EINVAL;
+
+	mif_info("dc->pktgen_ch = %d, 0x%x\n", dc->pktgen_ch, dc->pktgen_ch);
 
 	dc->pktgen_ch = ch;
 

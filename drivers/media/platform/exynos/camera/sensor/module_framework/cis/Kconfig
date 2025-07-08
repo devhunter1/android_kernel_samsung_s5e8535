@@ -564,3 +564,17 @@ config CAMERA_CIS_GC02M2_OBJ
 	default n
 	help
 	  Use to build GC02M2 camera sensor.
+
+config CAMERA_CIS_GC13A0_OBJ
+	tristate "Use GC13A0 camera cis"
+	depends on CAMERA_CIS_SELECT
+	default n
+	help
+	  Use to build GC13A0 camera sensor.
+
+config CAMERA_CIS_SC1321_OBJ
+	tristate "Use SC1321 camera cis"
+	depends on CAMERA_CIS_SELECT
+	default n
+	help
+	  Use to build SC1321 camera sensor.

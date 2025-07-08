@@ -359,9 +359,10 @@ static struct request *ssg_dispatch_request(struct blk_mq_hw_ctx *hctx)
 	spin_unlock(&ssg->lock);
 
 	rqi = ssg_rq_info(ssg, rq);
-	if (likely(rqi))
+	if (likely(rqi)) {
+		rqi->sector = blk_rq_pos(rq);
 		rqi->data_size = blk_rq_bytes(rq);
-
+	}
 	return rq;
 }
 
@@ -371,7 +372,7 @@ static void ssg_completed_request(struct request *rq, u64 now)
 	struct ssg_request_info *rqi;
 
 	rqi = ssg_rq_info(ssg, rq);
-	if (likely(rqi)) {
+	if (likely(rqi && rqi->sector == blk_rq_pos(rq))) {
 		ssg_stat_account_io_done(ssg, rq, rqi->data_size, now);
 		blk_sec_stat_account_io_complete(rq, rqi->data_size, rqi->pio);
 	}
@@ -825,10 +826,12 @@ static struct elv_fs_entry ssg_attrs[] = {
 #if IS_ENABLED(CONFIG_MQ_IOSCHED_SSG_WB)
 	SSG_ATTR(wb_on_rqs),
 	SSG_ATTR(wb_off_rqs),
-	SSG_ATTR(wb_on_write_bytes),
-	SSG_ATTR(wb_off_write_bytes),
+	SSG_ATTR(wb_on_dirty_bytes),
+	SSG_ATTR(wb_off_dirty_bytes),
 	SSG_ATTR(wb_on_sync_write_bytes),
 	SSG_ATTR(wb_off_sync_write_bytes),
+	SSG_ATTR(wb_on_dirty_busy_written_bytes),
+	SSG_ATTR(wb_on_dirty_busy_msecs),
 	SSG_ATTR(wb_off_delay_msecs),
 	SSG_ATTR_RO(wb_triggered),
 #endif

@@ -345,6 +345,7 @@ extern void s2mf301_irq_exit(struct s2mf301_dev *s2mf301);
 extern int s2mf301_read_reg(struct i2c_client *i2c, u8 reg, u8 *dest);
 extern int s2mf301_bulk_read(struct i2c_client *i2c, u8 reg, int count,
 				u8 *buf);
+extern int s2mf301_atomic_write(struct i2c_client *i2c, u8 reg[], u8 value[], int count);
 extern int s2mf301_write_reg(struct i2c_client *i2c, u8 reg, u8 value);
 extern int s2mf301_bulk_write(struct i2c_client *i2c, u8 reg, int count,
 				u8 *buf);

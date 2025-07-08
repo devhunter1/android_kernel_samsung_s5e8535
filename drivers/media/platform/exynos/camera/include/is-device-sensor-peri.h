@@ -201,6 +201,11 @@ struct is_cis {
 	int				cis_off_work_state;
 
 	struct freeform_sensor_crop_info	freeform_sensor_crop;
+
+	bool check_mipi_end;		/* if true, do check if wait_streamoff_mipi_end() is working fine */
+	bool wait_streamoff_done;	/* To check if wait_streamoff is done */
+	unsigned long time_wait_streamoff;	/* jiffies (the exact moment) when wait_Streamoff is done */
+	struct work_struct		mipi_end_work;
 };
 
 struct is_actuator_data {

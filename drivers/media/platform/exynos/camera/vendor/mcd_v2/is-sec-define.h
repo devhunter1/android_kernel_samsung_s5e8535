@@ -539,6 +539,14 @@ static const u32 sensor_gc02m1_setfile_otp_init[] = {
 #define S5K3L6_OTP_START_PAGE_BANK2	(0x3A)
 #define S5K3L6_OTP_READ_START_ADDR	(0x0A08)
 
+/********* SC501 OTP *********/
+#define IS_READ_MAX_SC501_OTP_CAL_SIZE	(1692)
+#define SC501CS_OTP_CHECK_BANK       0x80EC
+#define SC501CS_OTP_BANK1_MARK       0x01
+#define SC501CS_OTP_BANK2_MARK       0x03
+#define SC501CS_OTP_BANK1_START_ADDR 0x80F0
+#define SC501CS_OTP_BANK2_START_ADDR 0x8800
+
 /********* S5K4HA OTP *********/
 #define S5K4HA_STANDBY_ADDR                         0x0136
 #define S5K4HA_OTP_R_W_MODE_ADDR                    0x0A00

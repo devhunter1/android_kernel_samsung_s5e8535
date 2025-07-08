@@ -1681,6 +1681,7 @@ int xhci_hub_status_data(struct usb_hcd *hcd, char *buf)
 		clear_bit(HCD_FLAG_POLL_RH, &hcd->flags);
 	}
 	spin_unlock_irqrestore(&xhci->lock, flags);
+
 	return status ? retval : 0;
 }
 

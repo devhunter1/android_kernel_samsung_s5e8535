@@ -705,8 +705,8 @@ int sensor_cis_get_max_exposure_time(struct v4l2_subdev *subdev, u32 *max_expo)
 	frame_length_lines = cis_data->frame_length_lines;
 
 	max_coarse_margin = cis_data->max_margin_coarse_integration_time;
-	max_fine_margin = line_length_pck - cis_data->min_fine_integration_time;
-	max_coarse = frame_length_lines - max_coarse_margin;
+	max_fine_margin = ZERO_IF_NEG(line_length_pck - cis_data->min_fine_integration_time);
+	max_coarse = ZERO_IF_NEG(frame_length_lines - max_coarse_margin);
 	max_fine = cis_data->max_fine_integration_time;
 
 	max_integ_time = (u32)((u64)((line_length_pck * max_coarse) + max_fine) * 1000 / pclk_khz);
@@ -1398,7 +1398,7 @@ int sensor_cis_get_mode_info(struct v4l2_subdev *subdev, u32 mode, struct is_sen
 
 	/* calculate max_expo */
 	max_coarse_margin = max_margin_coarse_integration_time;
-	max_coarse = fll - max_coarse_margin;
+	max_coarse = ZERO_IF_NEG(fll - max_coarse_margin);
 	max_fine = max_fine_integration_time;
 
 	/* calculate min_expo */
@@ -1549,6 +1549,8 @@ int sensor_cis_parse_dt(struct device *dev, struct v4l2_subdev *subdev)
 	cis->vendor_use_adaptive_mipi = of_property_read_bool(dnode, "vendor_use_adaptive_mipi");
 	probe_info("%s vendor_use_adaptive_mipi(%d)\n", __func__, cis->vendor_use_adaptive_mipi);
 
+	cis->check_mipi_end = of_property_read_bool(dnode, "check_mipi_end");
+	probe_info("%s check_mipi_end(%d)\n", __func__, cis->check_mipi_end);
 p_err:
 	return ret;
 }
@@ -1687,6 +1689,9 @@ int sensor_cis_wait_streamoff_mipi_end(struct v4l2_subdev *subdev)
 		return -EINVAL;
 	}
 
+	if (cis->check_mipi_end)
+		info("[MOD:D:%d] %s begins\n", cis->id, __func__);
+
 	/* wait stream off by waiting vblank state */
 	do {
 		usleep_range(CIS_STREAM_OFF_WAIT_TIME, CIS_STREAM_OFF_WAIT_TIME + 1);
@@ -1701,6 +1706,11 @@ int sensor_cis_wait_streamoff_mipi_end(struct v4l2_subdev *subdev)
 
 		dbg_sensor(1, "[MOD:D:%d] %s, wait_limit(%d) < time_out(%d)\n",
 				cis->id, __func__, wait_cnt, time_out_cnt);
+
+		if (cis->check_mipi_end && cis->wait_streamoff_done)
+			if ((jiffies - cis->time_wait_streamoff) > msecs_to_jiffies(30))
+				err("[MOD:D:%d] %s, AP did not receive F.E (Frame End) so, mipi_end was not done. waiting_time(%dms), time_out(%dms)",
+						cis->id, __func__, wait_cnt * CIS_STREAM_OFF_WAIT_TIME / 1000, time_out_cnt * CIS_STREAM_OFF_WAIT_TIME / 1000);
 	} while (csi->sw_checker == EXPECT_FRAME_END);
 
 p_err:

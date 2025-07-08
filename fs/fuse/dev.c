@@ -22,6 +22,7 @@
 #include <linux/swap.h>
 #include <linux/splice.h>
 #include <linux/sched.h>
+#include <linux/sched/mm.h>
 
 #include <trace/hooks/fuse.h>
 
@@ -1253,11 +1254,8 @@ static ssize_t fuse_dev_do_read(struct fuse_dev *fud, struct file *file,
 		return -EINVAL;
 
 	/* @fs.sec -- 51ab84ba5e7a5c06d72ac60a9679ac69 -- */
-	if ((current->flags & PF_NOFREEZE) == 0) {
-		current->flags |= PF_NOFREEZE | PF_MEMALLOC_NOFS;
-		printk_ratelimited(KERN_WARNING "%s(%d): This thread should not be frozen\n",
-				current->comm, task_pid_nr(current));
-	}
+	if (!(current->flags & PF_MEMALLOC_NOFS))
+		memalloc_nofs_save();
 
  restart:
 	for (;;) {

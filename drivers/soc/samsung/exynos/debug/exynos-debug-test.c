@@ -169,9 +169,24 @@ static void simulate_DP(char *arg)
 
 static void simulate_QDP(char *arg)
 {
+	int index = 0;
+	char *tmp;
+
 	dev_crit(exynos_debug_desc.dev, "%s()\n", __func__);
 
-	dbg_snapshot_expire_watchdog();
+	if (!arg)
+		dbg_snapshot_expire_watchdog();
+	else {
+		index = find_blank(arg);
+		if (index > PAGE_SIZE)
+			return;
+
+		tmp = kmalloc(PAGE_SIZE, GFP_KERNEL);
+		memcpy(tmp, arg, index);
+		tmp[index] = '\0';
+		dbg_snapshot_expire_watchdog_with_msg(tmp);
+	}
+
 	mdelay(DELAY_TIME);
 	/* should not reach here */
 }

@@ -564,6 +564,7 @@ static inline void do_s3c2410wdt_builtin_expire_watchdog(void)
 {
 }
 #endif
+
 void do_el0_undef(struct pt_regs *regs, unsigned long esr)
 {
 	u32 insn;
@@ -583,19 +584,6 @@ void do_el0_undef(struct pt_regs *regs, unsigned long esr)
 
 	trace_android_rvh_do_undefinstr(regs);
 
-	if (IS_ENABLED(CONFIG_SEC_DEBUG_FAULT_MSG_ADV) && !user_mode(regs)) {
-		pr_auto(ASL1, "%s: pc=0x%016llx\n",
-			"undefined instruction", regs->pc);
-		dump_kernel_instr(KERN_INFO, regs);
-		secdbg_dump_kernel_instr_ext(regs);
-	}
-
-	if (!user_mode(regs))
-		do_s3c2410wdt_builtin_expire_watchdog();
-
-	if (IS_ENABLED(CONFIG_SEC_DEBUG_FAULT_MSG_ADV) && !user_mode(regs))
-		die("undefined instruction", regs, 0);
-
 out_err:
 	force_signal_inject(SIGILL, ILL_ILLOPC, regs->pc, 0);
 }
@@ -612,12 +600,31 @@ void do_el1_undef(struct pt_regs *regs, unsigned long esr)
 
 out_err:
 	trace_android_rvh_do_undefinstr(regs);
+
+	if (IS_ENABLED(CONFIG_SEC_DEBUG_FAULT_MSG_ADV) && !user_mode(regs)) {
+		pr_auto(ASL1, "%s: pc=0x%016llx\n",
+			"undefined instruction", regs->pc);
+		dump_kernel_instr(KERN_INFO, regs);
+		secdbg_dump_kernel_instr_ext(regs);
+	}
+	do_s3c2410wdt_builtin_expire_watchdog();
 	die("Oops - Undefined instruction", regs, esr);
 }
 
 void do_el0_bti(struct pt_regs *regs)
 {
 	force_signal_inject(SIGILL, ILL_ILLOPC, regs->pc, 0);
+}
+
+void do_el1_bti(struct pt_regs *regs, unsigned long esr)
+{
+	die("Oops - BTI", regs, esr);
+}
+
+void do_el0_fpac(struct pt_regs *regs, unsigned long esr)
+{
+	trace_android_rvh_do_ptrauth_fault(regs, esr);
+	force_signal_inject(SIGILL, ILL_ILLOPN, regs->pc, esr);
 }
 
 #define show_pac_key_single_kern(k, uk, kk)					\
@@ -659,26 +666,6 @@ static void show_pac_keys(struct ptrauth_keys_user *userk, struct ptrauth_keys_k
 #endif
 }
 
-void do_el1_bti(struct pt_regs *regs, unsigned long esr)
-{
-	die("Oops - BTI", regs, esr);
-}
-
-void do_el0_fpac(struct pt_regs *regs, unsigned long esr)
-{
-	trace_android_rvh_do_ptrauth_fault(regs, esr);
-
-	if (IS_ENABLED(CONFIG_SEC_DEBUG_FAULT_MSG_ADV) && !user_mode(regs)) {
-		pr_auto(ASL1, "Wrong PAC detected on CPU%d, LR 0x%010lx, code 0x%08x -- %s\n",
-			smp_processor_id(), regs->regs[30], esr, esr_get_class_string(esr));
-		show_pac_keys(&current->thread.keys_user, &current->thread.keys_kernel);
-		die("ptrauth fault", regs, 0);
-	}
-
-	BUG_ON(!user_mode(regs));
-	force_signal_inject(SIGILL, ILL_ILLOPN, regs->pc, esr);
-}
-
 void do_el1_fpac(struct pt_regs *regs, unsigned long esr)
 {
 	/*
@@ -686,6 +673,13 @@ void do_el1_fpac(struct pt_regs *regs, unsigned long esr)
 	 * does any more harm.
 	 */
 	trace_android_rvh_do_ptrauth_fault(regs, esr);
+
+	if (IS_ENABLED(CONFIG_SEC_DEBUG_FAULT_MSG_ADV) && !user_mode(regs)) {
+		pr_auto(ASL1, "Wrong PAC detected on CPU%d, LR 0x%010lx, code 0x%08lx -- %s\n",
+			smp_processor_id(), regs->regs[30], esr, esr_get_class_string(esr));
+		show_pac_keys(&current->thread.keys_user, &current->thread.keys_kernel);
+	}
+
 	die("Oops - FPAC", regs, esr);
 }
 

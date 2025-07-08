@@ -69,6 +69,7 @@ static struct dbg_snapshot_item dss_items[] = {
 	[DSS_ITEM_ARRDUMP_PANIC_ID] = {DSS_ITEM_ARRDUMP_PANIC, {0, 0, 0, false}, false, NULL, NULL},
 	[DSS_ITEM_FIRST_ID]	= {DSS_ITEM_FIRST,	{0, 0, 0, false}, false, NULL, NULL},
 	[DSS_ITEM_BACKTRACE_ID]	= {DSS_ITEM_BACKTRACE,	{0, 0, 0, false}, false, NULL, NULL},
+	[DSS_ITEM_WDTMSG_ID]	= {DSS_ITEM_WDTMSG,	{0, 0, 0, false}, false, NULL, NULL},
 };
 
 /*  External interface variable for trace debugging */

@@ -1348,6 +1348,18 @@ static int usbpd_manager_check_accessory(struct usbpd_manager_data *manager)
 	return 1;
 }
 
+void usbpd_manager_set_analog_audio(struct usbpd_data *pd_data)
+{
+	struct usbpd_manager_data *manager = &pd_data->manager;
+
+	manager->Vendor_ID = 0;
+	manager->Product_ID = 0;
+	manager->acc_type = PDIC_DOCK_UNSUPPORTED_AUDIO;
+
+	usbpd_manager_check_accessory(manager);
+}
+EXPORT_SYMBOL(usbpd_manager_set_analog_audio);
+
 /* Ok : 0, NAK: -1 */
 int usbpd_manager_get_identity(struct usbpd_data *pd_data)
 {
@@ -2199,6 +2211,9 @@ static int usbpd_manager_set_property(struct power_supply *psy,
 		switch (lsi_psp) {
 		case POWER_SUPPLY_LSI_PROP_USBPD_RESET:
 			PDIC_OPS_FUNC(set_usbpd_reset, pd_data);
+			break;
+		case POWER_SUPPLY_LSI_PROP_VCHGIN:
+			PDIC_OPS_FUNC(vbus_onoff, pd_data);
 			break;
 		case POWER_SUPPLY_LSI_PROP_USBPD_RPCUR:
 #if IS_ENABLED(CONFIG_S2MU106_TYPEC_WATER)

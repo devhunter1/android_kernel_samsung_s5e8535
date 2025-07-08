@@ -101,6 +101,7 @@
 							vc1 = </* in */ 1 HW_FORMAT_UNKNOWN 0 0        /* out */ HW_FORMAT_UNKNOWN VC_NOTHING 0 0>;
 							vc2 = </* in */ 2 HW_FORMAT_UNKNOWN 0 0        /* out */ HW_FORMAT_UNKNOWN VC_NOTHING 0 0>;
 							vc3 = </* in */ 3 HW_FORMAT_UNKNOWN 0 0        /* out */ HW_FORMAT_UNKNOWN VC_NOTHING 0 0>;
+							option { special_mode = <IS_SPECIAL_MODE_FASTAE>; };
 						};
 						mode3 {
 							common = <2032 1148 120 0 3 CSI_DATA_LANES_4 1443 CSI_MODE_VC_ONLY LRTE_DISABLE PD_NONE EX_NONE>;

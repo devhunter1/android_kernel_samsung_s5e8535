@@ -112,10 +112,10 @@
 #include <trace/hooks/direct_io.h>
 #include <trace/hooks/loop.h>
 #include <trace/hooks/psi.h>
-#include <trace/hooks/mz.h>
 #include <trace/hooks/delayacct.h>
 #include <trace/hooks/tmpfile.h>
 #include <trace/hooks/fuse.h>
+#include <trace/hooks/mz.h>
 
 /*
  * Export tracepoints that act as a bare tracehook (ie: have no trace event
@@ -535,7 +535,6 @@ EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_page_cache_miss);
  */
 const struct readahead_control *GKI_struct_readahead_control;
 EXPORT_SYMBOL_GPL(GKI_struct_readahead_control);
-EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_mz_exit);
 EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_exit_signal_whether_wake);
 EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_exit_check);
 EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_freeze_whether_wake);
@@ -545,6 +544,7 @@ EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_binder_spawn_new_thread);
 EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_binder_has_special_work_ilocked);
 EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_vmscan_kswapd_done);
 EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_should_end_madvise);
+EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_mz_exit);
 EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_should_fault_around);
 EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_do_read_fault);
 EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_filemap_read);

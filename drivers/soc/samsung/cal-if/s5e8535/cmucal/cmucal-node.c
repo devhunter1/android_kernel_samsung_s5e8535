@@ -718,7 +718,7 @@ enum clk_id cmucal_MUX_CLK_AUD_UAIF5_parents[] = {
 };
 enum clk_id cmucal_MUX_CLK_AUD_UAIF6_parents[] = {
     DIV_CLK_AUD_AUDIF,
-    OSCCLK_CMU,
+    IOCLK_AUDIOCDCLK6,
 };
 enum clk_id cmucal_MUX_CLK_AUD_DSIF_parents[] = {
     DIV_CLK_AUD_AUDIF,
@@ -1804,6 +1804,7 @@ struct cmucal_clk_fixed_rate cmucal_fixed_rate_list[] = {
     FIXEDRATE(OSCCLK_DSU, 52000000, EMPTY_CAL_ID),
     FIXEDRATE(DFTMUX_CLK_DSU_OSCCLK, 52000000, EMPTY_CAL_ID),
     FIXEDRATE(CLK_DSU_OSCCLK, 52000000, EMPTY_CAL_ID),
+    FIXEDRATE(IOCLK_AUDIOCDCLK6, 100000000, EMPTY_CAL_ID),
 // JSON/SCRT_JSON/MODEM_MODEM
 };
 unsigned int cmucal_fixed_rate_size = num_of_fixed_rate;

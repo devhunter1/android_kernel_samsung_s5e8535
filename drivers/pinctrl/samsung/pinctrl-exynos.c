@@ -544,6 +544,7 @@ s5pv210_pinctrl_set_eint_wakeup_mask(struct samsung_pinctrl_drv_data *drvdata,
 }
 
 static u32 eint_wake_mask_value = EXYNOS_EINT_WAKEUP_MASK_DISABLED;
+
 /*
  * irq_chip for wakeup interrupts
  */

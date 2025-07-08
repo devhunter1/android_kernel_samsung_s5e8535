@@ -471,6 +471,10 @@ static int command_abort_matching(struct us_data *us, struct scsi_cmnd *srb_matc
 	if (srb_match && us->srb != srb_match) {
 		scsi_unlock(us_to_host(us));
 		usb_stor_dbg(us, "-- pending command mismatch\n");
+#ifdef CONFIG_USB_DEBUG_DETAILED_LOG
+		pr_err("usb-storage: %s -- pending command mismatch -\n",
+				__func__);
+#endif
 		return FAILED;
 	}
 

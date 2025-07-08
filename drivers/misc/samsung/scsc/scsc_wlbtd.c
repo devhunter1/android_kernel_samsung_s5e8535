@@ -14,6 +14,7 @@
 #include <linux/delay.h>
 
 #include "scsc_wlbtd.h"
+#include <scsc/scsc_log_collector.h>
 
 #define MAX_TIMEOUT		30000 /* in milisecounds */
 #define WRITE_FILE_TIMEOUT	1000 /* in milisecounds */
@@ -338,6 +339,7 @@ static struct nla_policy policies[] = {
 static struct nla_policy policy_sable[] = {
 	[ATTR_INT] = { .type = NLA_U16, },
 	[ATTR_INT8] = { .type = NLA_U8, },
+	[ATTR_SBL_SIZE] = { .type = NLA_U32, },
 };
 
 static struct nla_policy policies_build_type[] = {
@@ -806,6 +808,13 @@ int call_wlbtd_sable(u8 trigger_code, u16 reason_code)
 	rc = nla_put_u8(skb, ATTR_INT8, trigger_code);
 	if (rc) {
 		SCSC_TAG_ERR(WLBTD, "nla_put_u8 failed. rc = %d\n", rc);
+		genlmsg_cancel(skb, msg);
+		goto error;
+	}
+
+	rc = nla_put_u32(skb, ATTR_SBL_SIZE, SCSC_LOG_COLLECT_MAX_SIZE);
+	if (rc) {
+		SCSC_TAG_ERR(WLBTD, "nla_put_32 failed. rc = %d\n", rc);
 		genlmsg_cancel(skb, msg);
 		goto error;
 	}

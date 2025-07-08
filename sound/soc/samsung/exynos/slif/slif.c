@@ -24,6 +24,9 @@
 #include <linux/regmap.h>
 #include <linux/sched/clock.h>
 #include <linux/miscdevice.h>
+#ifndef CONFIG_SND_SOC_SAMSUNG_VTS
+#include <linux/pinctrl/consumer.h>
+#endif
 
 #include <asm-generic/delay.h>
 
@@ -39,7 +42,9 @@
 #include "slif_util.h"
 #include "slif.h"
 #include "slif_soc.h"
+#ifdef CONFIG_SND_SOC_SAMSUNG_VTS
 #include "slif_nm.h"
+#endif
 #include "slif_dump.h"
 #include "slif_memlog.h"
 
@@ -1074,6 +1079,7 @@ static const struct regmap_config slif_regmap_dmic_aud_config = {
 	.fast_io = true,
 };
 
+#ifdef CONFIG_SND_SOC_SAMSUNG_VTS
 static int s_lif_clk_vts(struct slif_data *data)
 {
 	struct device *dev = data->dev;
@@ -1097,6 +1103,7 @@ static int s_lif_clk_vts(struct slif_data *data)
 
 	return 0;
 }
+#endif
 
 static int samsung_slif_probe(struct platform_device *pdev)
 {
@@ -1118,6 +1125,7 @@ static int samsung_slif_probe(struct platform_device *pdev)
 	data->pdev = pdev;
 	dma_set_mask_and_coherent(dev, DMA_BIT_MASK(36));
 
+#ifdef CONFIG_SND_SOC_SAMSUNG_VTS
 	if (s_lif_clk_vts(data) < 0) {
 		slif_warn(dev, "Failed to get vts device. Fallback to parent\n");
 		data->dev_vts = pdev->dev.parent;
@@ -1127,6 +1135,14 @@ static int samsung_slif_probe(struct platform_device *pdev)
 		}
 	}
 	data->vts_data = dev_get_drvdata(data->dev_vts);
+#else
+	data->pinctrl = devm_pinctrl_get(dev);
+	if (IS_ERR(data->pinctrl)) {
+		slif_err(dev, "Couldn't get pins (%li)\n",
+				PTR_ERR(data->pinctrl));
+		data->pinctrl = NULL;
+	}
+#endif
 
 	data->sfr_base = slif_devm_get_request_ioremap(pdev, "sfr",
 			NULL, NULL);

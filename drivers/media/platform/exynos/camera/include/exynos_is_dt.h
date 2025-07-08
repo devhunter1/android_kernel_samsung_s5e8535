@@ -375,6 +375,8 @@
 #define SENSOR_NAME_HI556		221
 #define SENSOR_NAME_GC02M2		222
 #define SENSOR_NAME_SC501		223
+#define SENSOR_NAME_GC13A0		227
+#define SENSOR_NAME_SC1321		228
 
 /* 256~: currently not used */
 #define SENSOR_NAME_CUSTOM		301

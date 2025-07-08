@@ -130,13 +130,13 @@ MODULE_PARM_DESC(force_to_wlbt_status_timeout, "wlbt_status_timeout(ms)");
 static bool init_done;
 
 #ifdef CONFIG_SCSC_QOS
-/* 533Mhz / 960Mhz / 1690Mhz for cpucl0 */
-static uint qos_cpucl0_lv[] = {0, 0, 4, 12};
+/* 533Mhz / 1056Mhz / 1690Mhz for cpucl0 */
+static uint qos_cpucl0_lv[] = {0, 0, 5, 12};
 module_param_array(qos_cpucl0_lv, uint, NULL, 0644);
 MODULE_PARM_DESC(qos_cpucl0_lv, "S5E8535 DVFS Lv of CPUCL0 to apply Min/Med/Max PM QoS");
 
-/* 533Mhz / 960Mhz / 2132Mhz for cpucl1 */
-static uint qos_cpucl1_lv[] = {0, 0, 4, 16};
+/* 533Mhz / 1056Mhz / 2132Mhz for cpucl1 */
+static uint qos_cpucl1_lv[] = {0, 0, 5, 16};
 module_param_array(qos_cpucl1_lv, uint, NULL, 0644);
 MODULE_PARM_DESC(qos_cpucl1_lv, "S5E8535 DVFS Lv of CPUCL1 to apply Min/Med/Max PM QoS");
 #endif /*CONFIG_SCSC_QOS*/
@@ -2498,6 +2498,7 @@ static void platform_mif_dump_register(struct scsc_mif_abs *interface)
 {
 	struct platform_mif *platform = platform_mif_from_mif_abs(interface);
 	unsigned long       flags;
+	int i;
 	unsigned int val;
 
 	spin_lock_irqsave(&platform->mif_spinlock, flags);
@@ -2514,20 +2515,14 @@ static void platform_mif_dump_register(struct scsc_mif_abs *interface)
 	SCSC_TAG_INFO_DEV(PLAT_MIF, platform->dev, "INTSR1 0x%08x\n", platform_mif_reg_read(platform, MAILBOX_WLBT_REG(INTSR1)));
 	SCSC_TAG_INFO_DEV(PLAT_MIF, platform->dev, "INTMSR1 0x%08x\n", platform_mif_reg_read(platform, MAILBOX_WLBT_REG(INTMSR1)));
 
-	regmap_read(platform->pmureg, WLBT_CONFIGURATION, &val);
-	SCSC_TAG_INFO_DEV(PLAT_MIF, platform->dev, "WLBT_CONFIGURATION 0x%08x\n", val);
-	regmap_read(platform->pmureg, WLBT_STAT, &val);
-	SCSC_TAG_INFO_DEV(PLAT_MIF, platform->dev, "WLBT_STAT 0x%08x\n", val);
-	regmap_read(platform->pmureg, WLBT_OUT, &val);
-	SCSC_TAG_INFO_DEV(PLAT_MIF, platform->dev, "WLBT_OUT 0x%08x\n", val);
-	regmap_read(platform->pmureg, WLBT_IN, &val);
-	SCSC_TAG_INFO_DEV(PLAT_MIF, platform->dev, "WLBT_IN 0x%08x\n", val);
-	regmap_read(platform->pmureg, WLBT_DEBUG, &val);
-	SCSC_TAG_INFO_DEV(PLAT_MIF, platform->dev, "WLBT_DEBUG 0x%08x\n", val);
-	regmap_read(platform->pmureg, WLBT_STATUS, &val);
-	SCSC_TAG_INFO_DEV(PLAT_MIF, platform->dev, "WLBT_STATUS 0x%08x\n", val);
-	regmap_read(platform->pmureg, WLBT_STATES, &val);
-	SCSC_TAG_INFO_DEV(PLAT_MIF, platform->dev, "WLBT_STATES 0x%08x\n", val);
+	for (i = 0; i < NUM_MBOX_PLAT; i++) {
+		val = platform_mif_reg_read(platform, MAILBOX_WLBT_REG(ISSR(i)));
+		SCSC_TAG_INFO_DEV(PLAT_MIF, platform->dev, "WLAN MBOX[%d]: ISSR(%d) val = 0x%x\n", i, i, val);
+		val = platform_mif_reg_read_wpan(platform, MAILBOX_WLBT_REG(ISSR(i)));
+		SCSC_TAG_INFO_DEV(PLAT_MIF, platform->dev, "WPAN MBOX[%d]: ISSR(%d) val = 0x%x\n", i, i, val);
+	}
+
+	platform_wlbt_regdump(&platform->interface);
 
 	spin_unlock_irqrestore(&platform->mif_spinlock, flags);
 }
@@ -2682,7 +2677,7 @@ struct scsc_mif_abs *platform_mif_create(struct platform_device *pdev)
 		np = of_parse_phandle(platform->dev->of_node, "memory-region", 0);
 		SCSC_TAG_INFO_DEV(PLAT_MIF, platform->dev,
 				  "module build register sharedmem np %x\n", np);
-		if (np) {
+		if (np && of_reserved_mem_lookup(np)) {
 			platform->mem_start = of_reserved_mem_lookup(np)->base;
 			platform->mem_size = of_reserved_mem_lookup(np)->size;
 		}

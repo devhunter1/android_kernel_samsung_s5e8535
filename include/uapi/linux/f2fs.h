@@ -47,6 +47,7 @@
 #define F2FS_IOC_GET_VALID_NODE_COUNT	_IOR(F2FS_IOCTL_MAGIC, 32, __u32)
 #define F2FS_IOC_STAT_COMPRESS_FILE	_IOWR(F2FS_IOCTL_MAGIC, 33, \
 						struct f2fs_sec_stat_compfile)
+#define F2FS_IOC_SET_RELIABLE_WRITE	_IO(F2FS_IOCTL_MAGIC, 34)
 
 /*
  * should be same as XFS_IOC_GOINGDOWN.

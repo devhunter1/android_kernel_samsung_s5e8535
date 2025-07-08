@@ -29,6 +29,7 @@
 #include "is-interface-ischain.h"
 #include "is-interface-library.h"
 #include "../include/is-hw.h"
+#include "is-hw-api-csi.h"
 
 static int is_interface_hw_ip_probe(struct is_interface_ischain *itfc,
 	int hw_id, int handler_id, struct platform_device *pdev, struct is_hardware *hardware)
@@ -546,6 +547,7 @@ IS_TIMER_FUNC(interface_timer)
 	struct is_interface *itf = from_timer(itf, (struct timer_list *)data, timer);
 
 	struct is_core *core;
+	struct is_device_csi *csi;
 	struct is_device_ischain *device;
 	struct is_device_sensor *sensor;
 	struct is_framemgr *framemgr;
@@ -684,6 +686,10 @@ IS_TIMER_FUNC(interface_timer)
 			pr_err ("sensor timer[%d] is increased to %d(fcount : %d)\n", i,
 				atomic_read(&itf->sensor_timeout[i]), fcount);
 			is_sensor_dump(sensor);
+			csi = (struct is_device_csi *)v4l2_get_subdevdata(sensor->subdev_csi);
+			csi_hw_dump(csi->base_reg);
+			csi_hw_phy_dump(csi->phy_reg, csi->ch);
+			is_debug_s2d(true, "DEBUG to Dump PHY");
 		} else {
 			atomic_set(&itf->sensor_timeout[i], 0);
 			atomic_set(&itf->sensor_check[i], fcount);

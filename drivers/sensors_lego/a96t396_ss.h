@@ -116,6 +116,7 @@ const char *sdcard_fw_path[GRIP_MAX_CNT] = {
 
 /* registers */
 #define REG_FW_VER                      0x02
+#define REG_TUNING_VER                  0x03
 #define REG_BTNSTATUS                   0x00
 #define REG_SAR_TOTALCAP_READ           0x10
 #define REG_SAR_TOTALCAP_READ_2CH       0x12
@@ -124,6 +125,7 @@ const char *sdcard_fw_path[GRIP_MAX_CNT] = {
 #define REG_MODEL_NO                    0x04
 #define REG_SW_RESET                    0x06
 #define REG_SAR_ENABLE                  0x09
+#define REG_PROJECT_ID                  0x0C
 #define REG_SAR_NOISE_THRESHOLD         0x2A
 #define REG_SAR_NOISE_THRESHOLD_2CH     0x2C
 #define REG_SAR_THRESHOLD               0x22
@@ -835,7 +837,7 @@ static struct a96t3xx_reg_data setup_reg[] = {
 #ifndef CONFIG_SENSORS_CORE_AP
 extern int sensors_create_symlink(struct input_dev *inputdev);
 extern void sensors_remove_symlink(struct input_dev *inputdev);
-extern int sensors_register(struct device *dev, void *drvdata,
+extern int sensors_register(struct device **dev, void *drvdata,
 		struct device_attribute *attributes[], char *name);
 extern void sensors_unregister(struct device *dev,
 		struct device_attribute *attributes[]);

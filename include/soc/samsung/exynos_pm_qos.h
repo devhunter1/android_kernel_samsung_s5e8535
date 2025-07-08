@@ -167,6 +167,7 @@ struct exynos_pm_qos_request {
 	char *func;
 	unsigned int line;
 	ktime_t time;
+	bool nosync;
 };
 
 struct exynos_pm_qos_flags_request {

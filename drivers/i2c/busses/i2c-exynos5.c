@@ -1594,6 +1594,77 @@ static int exynos5_i2c_resume_noirq(struct device *dev)
 }
 #endif
 
+#if IS_ENABLED(CONFIG_SAMSUNG_TUI)
+#ifdef CONFIG_PM_RUNTIME
+static int stui_pm_ret;
+#endif /* CONFIG_PM_RUNTIME */
+int stui_i2c_lock(struct i2c_adapter *adap)
+{
+	int ret = 0;
+	static struct exynos5_i2c *stui_i2c;
+
+	if (!adap) {
+		pr_err("cannot get adapter\n");
+		return -1;
+	}
+
+	i2c_lock_bus(adap, I2C_LOCK_ROOT_ADAPTER);
+	stui_i2c = (struct exynos5_i2c *)adap->algo_data;
+
+#ifdef CONFIG_PM_RUNTIME
+	stui_pm_ret = pm_runtime_get_sync(stui_i2c->dev);
+	if (stui_pm_ret < 0) {
+		ret = clk_enable(stui_i2c->clk);
+		if (ret)
+			goto out_err;
+	}
+#else /* CONFIG_PM_RUNTIME */
+	ret = clk_enable(stui_i2c->clk);
+	if (ret)
+		goto out_err;
+#endif /* CONFIG_PM_RUNTIME */
+#ifdef CONFIG_CPU_IDLE
+	exynos_update_ip_idle_status(stui_i2c->idle_ip_index, 0);
+#endif
+	return 0;
+
+out_err:
+	i2c_unlock_bus(adap, I2C_LOCK_ROOT_ADAPTER);
+	return ret;
+}
+EXPORT_SYMBOL_GPL(stui_i2c_lock);
+
+int stui_i2c_unlock(struct i2c_adapter *adap)
+{
+	static struct exynos5_i2c *stui_i2c;
+
+	if (!adap) {
+		pr_err("cannot get adapter\n");
+		return -1;
+	}
+
+	stui_i2c = (struct exynos5_i2c *)adap->algo_data;
+
+#ifdef CONFIG_PM_RUNTIME
+	if (stui_pm_ret < 0) {
+		clk_disable(stui_i2c->clk);
+	} else {
+		pm_runtime_mark_last_busy(stui_i2c->dev);
+		pm_runtime_put_autosuspend(stui_i2c->dev);
+	}
+#else /* CONFIG_PM_RUNTIME */
+	clk_disable(stui_i2c->clk);
+#endif /* CONFIG_PM_RUNTIME */
+#ifdef CONFIG_CPU_IDLE
+	exynos_update_ip_idle_status(stui_i2c->idle_ip_index, 1);
+#endif
+	i2c_unlock_bus(adap, I2C_LOCK_ROOT_ADAPTER);
+
+	return 0;
+}
+EXPORT_SYMBOL_GPL(stui_i2c_unlock);
+#endif /* CONFIG_SAMSUNG_TUI */
+
 static const struct dev_pm_ops exynos5_i2c_pm = {
 	SET_NOIRQ_SYSTEM_SLEEP_PM_OPS(exynos5_i2c_suspend_noirq,
 				      exynos5_i2c_resume_noirq)

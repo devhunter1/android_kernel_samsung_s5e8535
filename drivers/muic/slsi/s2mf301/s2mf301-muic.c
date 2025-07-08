@@ -394,6 +394,28 @@ static void _s2mf301_muic_set_chg_det(struct s2mf301_muic_data *muic_data,
 }
 #endif
 
+static void s2mf301_muic_vbus_onoff(struct s2mf301_muic_data *muic_data)
+{
+	union power_supply_propval val;
+
+	if (!muic_data->psy_pd)
+		muic_data->psy_pd = power_supply_get_by_name("usbpd-manager");
+
+	if (!muic_data->psy_pd) {
+		pr_info("%s, Fail to get psy_pd, after 1sec\n", __func__);
+		schedule_delayed_work(&muic_data->pcp_clk_work, msecs_to_jiffies(1000));
+		return;
+	}
+
+	val.intval = 0;
+
+	if (muic_data->psy_pd)
+		muic_data->psy_pd->desc->set_property(muic_data->psy_pd,
+				(enum power_supply_property)POWER_SUPPLY_LSI_PROP_VCHGIN, &val);
+
+	return;
+}
+
 static void s2mf301_muic_pcp_clk_work(struct work_struct *work)
 {
 	struct s2mf301_muic_data *muic_data =
@@ -1720,6 +1742,8 @@ static irqreturn_t s2mf301_muic_vbus_on_isr(int irq, void *data)
 #if defined(CONFIG_S2MF301_TYPEC_WATER)
 out:
 #endif
+	s2mf301_muic_vbus_onoff(muic_data);
+
 	__pm_relax(muic_data->muic_ws);
 	mutex_unlock(&muic_data->muic_mutex);
 
@@ -1773,6 +1797,7 @@ static irqreturn_t s2mf301_muic_vbus_off_isr(int irq, void *data)
 
 	pr_info("%s done(%s)\n", __func__, dev_to_str(sdata->attached_dev));
 
+	s2mf301_muic_vbus_onoff(muic_data);
 	__pm_relax(muic_data->muic_ws);
 	mutex_unlock(&muic_data->muic_mutex);
 

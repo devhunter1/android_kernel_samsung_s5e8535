@@ -156,6 +156,9 @@
 #define CMD_SETJOINPREFER "SETJOINPREFER"
 #define CMD_SETSINGLEANT "SETSINGLEANT"
 #define CMD_SET_TX_POWER_CALLING "SET_TX_POWER_CALLING"
+#define CMD_SET_TX_POWER_CALLING_CAT2 "SET_TX_POWER_CALLING_CAT2"
+#define CMD_GET_TX_POWER_CALLING "GET_TX_POWER_CALLING"
+#define CMD_GET_AVG_TX_POWER "GET_AVG_TX_POWER"
 #define CMD_SET_CUSTOM_TX_POWER_CALLING "SET_CUSTOM_TX_POWER_CALLING"
 #define CMD_GET_CU "GET_CU"
 
@@ -229,6 +232,8 @@
 
 #define CMD_GET_TDLS_MAX_SESSION	"GET_TDLS_MAX_SESSION"
 #define CMD_GET_TDLS_NUM_OF_SESSION "GET_TDLS_NUM_OF_SESSION"
+
+#define CMD_GET_TAS_MODE "GET_TAS_MODE"
 
 #define ROAMOFFLAPLIST_MIN 1
 #define ROAMOFFLAPLIST_MAX 100
@@ -1915,7 +1920,7 @@ static int slsi_ioctl_set_roam_band(struct net_device *dev, char *command, int c
 }
 
 #ifdef CONFIG_SCSC_WLAN_WES_NCHO
-uint slsi_band_to_fw_band_maping(uint band)
+static int slsi_band_to_fw_band_maping(uint band)
 {
 	switch (band) {
 	case SLSI_FREQ_BAND_AUTO:
@@ -1943,7 +1948,7 @@ static int slsi_ioctl_set_band(struct net_device *dev, char *command, int cmd_le
 	struct netdev_vif *ndev_vif = netdev_priv(dev);
 	struct slsi_dev *sdev = ndev_vif->sdev;
 	uint band = 0;
-	uint internal_band = 0; /* used for driver and firmware mapping */
+	int internal_band = 0; /* used for driver and firmware mapping */
 	int ret = 0;
 	struct slsi_ioctl_args *ioctl_args = NULL;
 
@@ -1983,7 +1988,7 @@ static int slsi_ioctl_set_band(struct net_device *dev, char *command, int cmd_le
 		return -EINVAL;
 	}
 	SLSI_MUTEX_LOCK(ndev_vif->vif_mutex);
-	ret = slsi_mlme_set_band_req(sdev, dev, internal_band, 0);
+	ret = slsi_mlme_set_band_req(sdev, dev, (uint)internal_band, 0);
 	if (ret == -EIO) {
 		SLSI_MUTEX_UNLOCK(ndev_vif->vif_mutex);
 		kfree(ioctl_args);
@@ -4186,6 +4191,12 @@ static int slsi_send_action_frame(struct net_device *dev, char *command, int buf
 		return 0;
 	}
 
+	if (strlen(ioctl_args->args[4]) < len) {
+		SLSI_ERR(sdev, "Input buffer len mismatch (%d) != len(%d)", strlen(ioctl_args->args[4]), len);
+		kfree(ioctl_args);
+		return -EINVAL;
+	}
+
 	buf = kmalloc((len + 1) / 2, GFP_KERNEL);
 
 	if (!buf) {
@@ -4768,6 +4779,129 @@ int slsi_set_tx_power_calling(struct net_device *dev, char *command, int buf_len
 	return error;
 }
 
+int slsi_set_tx_power_calling_cat2(struct net_device *dev, char *command, int buf_len)
+{
+	struct netdev_vif *ndev_vif = netdev_priv(dev);
+	struct slsi_dev *sdev = ndev_vif->sdev;
+	struct slsi_ioctl_args *ioctl_args = NULL;
+	int ret = 0;
+	int dsi_id = 0;
+
+	ioctl_args = slsi_get_private_command_args(command, buf_len, 1);
+	ret = slsi_verify_ioctl_args(sdev, ioctl_args);
+	if (ret)
+		return ret;
+
+	if (!slsi_str_to_int(ioctl_args->args[0], &dsi_id)) {
+		SLSI_ERR(sdev, "Invalid string: '%s'\n", ioctl_args->args[0]);
+		kfree(ioctl_args);
+		return -EINVAL;
+	}
+
+	ret = slsi_mlme_sar_set_index(sdev, dev, dsi_id);
+	if (ret != 0)
+		SLSI_NET_ERR(dev, "Error in setting the tx power calling cat2, ret=%d", ret);
+
+	kfree(ioctl_args);
+	return ret;
+}
+
+int slsi_get_tx_power_calling(struct net_device *dev, char *command, int buf_len)
+{
+	struct netdev_vif *ndev_vif = netdev_priv(dev);
+	struct slsi_dev *sdev = ndev_vif->sdev;
+	struct slsi_ioctl_args *ioctl_args = NULL;
+	struct slsi_mlme_sar_tx_power_limit limits[2] = {0};
+	int ret = 0, cur_pos = 0, i = 0;
+	int dsi_id = 0;
+
+	ioctl_args = slsi_get_private_command_args(command, buf_len, 1);
+	ret = slsi_verify_ioctl_args(sdev, ioctl_args);
+	if (ret)
+		return ret;
+
+	if (!slsi_str_to_int(ioctl_args->args[0], &dsi_id)) {
+		SLSI_ERR(sdev, "Invalid string: '%s'\n", ioctl_args->args[0]);
+		kfree(ioctl_args);
+		return -EINVAL;
+	}
+
+	ret = slsi_mlme_sar_get_tx_power_limit(sdev, dev, FAPI_OPERATINGCLASSSET_FCC, dsi_id, &limits[0]);
+	ret |= slsi_mlme_sar_get_tx_power_limit(sdev, dev, FAPI_OPERATINGCLASSSET_ETSI, dsi_id, &limits[1]);
+
+	cur_pos = snprintf(command, buf_len, "%d", (ret == 0) ? 0 : 1);
+
+	for (i = 0; i < 2; i++) {
+		cur_pos += snprintf(command + cur_pos, buf_len - cur_pos, " %d %d %d",
+				    limits[i].antenna1_2g4, limits[i].antenna2_2g4, limits[i].antenna1_2_2g4);
+		cur_pos += snprintf(command + cur_pos, buf_len - cur_pos, " %d %d %d",
+				    limits[i].antenna1_5g, limits[i].antenna2_5g, limits[i].antenna1_2_5g);
+		cur_pos += snprintf(command + cur_pos, buf_len - cur_pos, " %d %d %d",
+				    limits[i].antenna1_6g, limits[i].antenna2_6g, limits[i].antenna1_2_6g);
+	}
+	cur_pos += snprintf(command + cur_pos, buf_len - cur_pos, "\n");
+
+	kfree(ioctl_args);
+	return cur_pos;
+}
+
+int slsi_get_avg_tx_power(struct net_device *dev, char *command, int buf_len)
+{
+	struct netdev_vif *ndev_vif = netdev_priv(dev);
+	struct slsi_dev *sdev = ndev_vif->sdev;
+	struct slsi_ioctl_args *ioctl_args = NULL;
+	struct slsi_sar_avg_tx_power avg_tx_pwr = {0};
+	int ret = 0, cur_pos = 0, i = 0;
+	int dsi_id = 0, report_mode = 0;
+
+	ioctl_args = slsi_get_private_command_args(command, buf_len, 2);
+	ret = slsi_verify_ioctl_args(sdev, ioctl_args);
+	if (ret)
+		return ret;
+
+	if (ioctl_args->arg_count < 2) {
+		SLSI_ERR(sdev, "Invalid argument count = %d\n", ioctl_args->arg_count);
+		kfree(ioctl_args);
+		return -EINVAL;
+	}
+
+	if (!slsi_str_to_int(ioctl_args->args[0], &dsi_id)) {
+		SLSI_ERR(sdev, "Invalid string: '%s'\n", ioctl_args->args[0]);
+		kfree(ioctl_args);
+		return -EINVAL;
+	}
+
+	if (!slsi_str_to_int(ioctl_args->args[1], &report_mode)) {
+		SLSI_ERR(sdev, "Invalid string: '%s'\n", ioctl_args->args[1]);
+		kfree(ioctl_args);
+		return -EINVAL;
+	}
+
+	if (report_mode != 0) {
+		SLSI_ERR(sdev, "Not supported report mode: %d\n", report_mode);
+		kfree(ioctl_args);
+		return -EOPNOTSUPP;
+	}
+
+	ret = slsi_mlme_sar_get_avg_tx_power(sdev, dev, dsi_id, report_mode, &avg_tx_pwr);
+	if (!ret) {
+#define SLSI_GET_AVG_TX_POWER(x, shift) (((x) >> (shift)) & 0x3)
+		/* Antenna3, Antenna4 are not supported (0) */
+		for (i = 0; i < 3; i++)
+			cur_pos += snprintf(command + cur_pos, buf_len - cur_pos, "%d %d 0 0 ",
+					    SLSI_GET_AVG_TX_POWER(avg_tx_pwr.antenna1, i * 2),
+					    SLSI_GET_AVG_TX_POWER(avg_tx_pwr.antenna2, i * 2));
+		cur_pos += snprintf(command + cur_pos, buf_len - cur_pos, "%d\n", avg_tx_pwr.long_window);
+	} else {
+		SLSI_NET_ERR(dev, "Error in getting the avg tx power, ret = %d\n", ret);
+		cur_pos = snprintf(command, buf_len, "-1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 %d\n",
+				   avg_tx_pwr.long_window);
+	}
+
+	kfree(ioctl_args);
+	return cur_pos;
+}
+
 int slsi_set_custom_tx_power_calling(struct net_device *dev, char *command, int buf_len)
 {
 	struct netdev_vif       *ndev_vif = netdev_priv(dev);
@@ -5241,7 +5375,7 @@ static char *slsi_get_assoc_status(u16 fw_result_code)
 static int slsi_copy_ap_sta_info_stats_to_buf(char *command, int buf_len, int len, int support_mode, u32 *rate_stats)
 {
 	if (buf_len <= len)
-		return len;
+		return buf_len;
 
 	switch (support_mode) {
 	case SLSI_MODE_HE:
@@ -5296,7 +5430,7 @@ static int slsi_copy_ap_sta_info_to_buf(struct netdev_vif *ndev_vif, char *comma
 					int len, struct slsi_ap_sta_info *peer_info)
 {
 	if (buf_len <= len)
-		return len;
+		return buf_len;
 
 	len += snprintf(&command[len], (buf_len - len),
 		   "GETSTAINFO %pM Rx_Retry_Pkts=%d Rx_BcMc_Pkts=%d CAP=%04x %02x:%02x:%02x ",
@@ -5309,7 +5443,7 @@ static int slsi_copy_ap_sta_info_to_buf(struct netdev_vif *ndev_vif, char *comma
 		   peer_info->address[2]);
 
 	if (buf_len <= len)
-		return len;
+		return buf_len;
 
 	len += snprintf(&command[len], (buf_len - len), "%d %d %d %d %d %d %d %u %d %d ",
 		   ieee80211_frequency_to_channel(ndev_vif->ap.channel_freq),
@@ -5324,7 +5458,7 @@ static int slsi_copy_ap_sta_info_to_buf(struct netdev_vif *ndev_vif, char *comma
 						 peer_info->tx_rate_stats);
 
 	if (buf_len <= len)
-		return len;
+		return buf_len;
 
 	len += snprintf(&command[len], (buf_len - len), "%d %d %d ",
 		   peer_info->tx_success_packets, peer_info->tx_failure_packets,
@@ -5334,7 +5468,7 @@ static int slsi_copy_ap_sta_info_to_buf(struct netdev_vif *ndev_vif, char *comma
 						 peer_info->rx_rate_stats);
 
 	if (buf_len <= len)
-		return len;
+		return buf_len;
 
 	len += snprintf(&command[len], (buf_len - len), "%d %d %d\n",
 		   peer_info->rx_success_packets, peer_info->rx_failure_packets,
@@ -5391,8 +5525,8 @@ int slsi_get_sta_info(struct net_device *dev, char *command, int buf_len)
 		kfree(ioctl_args);
 		SLSI_MUTEX_LOCK(ndev_vif->vif_mutex);
 
-		len += slsi_copy_ap_sta_info_to_buf(ndev_vif, command, buf_len, len,
-						    &ndev_vif->ap.last_disconnected_sta);
+		len = slsi_copy_ap_sta_info_to_buf(ndev_vif, command, buf_len, len,
+						   &ndev_vif->ap.last_disconnected_sta);
 
 		SLSI_MUTEX_UNLOCK(ndev_vif->vif_mutex);
 
@@ -5411,15 +5545,13 @@ int slsi_get_sta_info(struct net_device *dev, char *command, int buf_len)
 		int i = 0;
 
 		for (i = 0; i < SLSI_PEER_INDEX_MAX; i++) {
-			SLSI_INFO(sdev, "%02X:%02X:%02X:%02X:%02X:%02X - valid:%d, buf_len:%d, len:%d\n",
-				  ndev_vif->peer_sta_record[i]->address[0], ndev_vif->peer_sta_record[i]->address[1],
-				  ndev_vif->peer_sta_record[i]->address[2], ndev_vif->peer_sta_record[i]->address[3],
-				  ndev_vif->peer_sta_record[i]->address[4], ndev_vif->peer_sta_record[i]->address[5],
-				  ndev_vif->peer_sta_record[i]->valid, buf_len, len);
 			if (ndev_vif->peer_sta_record[i] && ndev_vif->peer_sta_record[i]->valid &&
 			    slsi_fill_ap_sta_info(sdev, dev, ndev_vif->peer_sta_record[i]->address,
 						  &sta_info, 0) == 0) {
-				len += slsi_copy_ap_sta_info_to_buf(ndev_vif, command, buf_len, len, &sta_info);
+				SLSI_INFO(sdev, "%pM - valid:%d, buf_len:%d, len:%d\n",
+					  ndev_vif->peer_sta_record[i]->address,
+					  ndev_vif->peer_sta_record[i]->valid, buf_len, len);
+				len = slsi_copy_ap_sta_info_to_buf(ndev_vif, command, buf_len, len, &sta_info);
 				if (buf_len <= len)
 					break;
 				memset(&sta_info, 0, sizeof(sta_info));
@@ -5438,7 +5570,7 @@ int slsi_get_sta_info(struct net_device *dev, char *command, int buf_len)
 			return -EINVAL;
 		}
 		if (slsi_fill_ap_sta_info(sdev, dev, u, &sta_info, 0) == 0)
-			len += slsi_copy_ap_sta_info_to_buf(ndev_vif, command, buf_len, len, &sta_info);
+			len = slsi_copy_ap_sta_info_to_buf(ndev_vif, command, buf_len, len, &sta_info);
 	}
 	SLSI_MUTEX_UNLOCK(ndev_vif->vif_mutex);
 
@@ -5465,9 +5597,10 @@ static int slsi_get_bss_info(struct net_device *dev, char *command, int buf_len)
 
 	SLSI_MUTEX_LOCK(ndev_vif->vif_mutex);
 
-	len = snprintf(command, buf_len, "%02x:%02x:%02x %u %u %d %u %u %u %u %u %d %d %u %u %u %u",
+	len = snprintf(command, buf_len, "%02x:%02x:%02x %.*s %u %u %d %u %u %u %u %u %d %d %u %u %u %u",
 		       ndev_vif->sta.last_connected_bss.address[0],  ndev_vif->sta.last_connected_bss.address[1],
 		       ndev_vif->sta.last_connected_bss.address[2],
+		       (int)ndev_vif->sta.last_connected_bss.ssid_len, ndev_vif->sta.last_connected_bss.ssid,
 		       ndev_vif->sta.last_connected_bss.channel_freq, ndev_vif->sta.last_connected_bss.bandwidth,
 		       ndev_vif->sta.last_connected_bss.rssi, ndev_vif->sta.last_connected_bss.tx_data_rate,
 		       ndev_vif->sta.last_connected_bss.mode, ndev_vif->sta.last_connected_bss.antenna_mode,
@@ -7182,6 +7315,11 @@ static int slsi_set_delayed_wakeup_type(struct net_device *dev, char *command, i
 			if (strncmp((char *)&ioctl_args->args[i][2], ":", 1) == 0) {
 				pos = &ioctl_args->args[i][0];
 				while (pos < (ioctl_args->args[i] + strlen(ioctl_args->args[i]))) {
+					if (mac_count >= 5) {
+						SLSI_ERR(sdev, "Invalid number of MAC addresses\n");
+						ret = -EINVAL;
+						goto exit;
+					}
 					slsi_machexstring_to_macarray(pos, macaddrlist[mac_count]);
 					mac_count++;
 					pos += (2 * ETH_ALEN) + 5 + 1;
@@ -7190,6 +7328,11 @@ static int slsi_set_delayed_wakeup_type(struct net_device *dev, char *command, i
 				token = strsep((char **)&ioctl_args->args[i], ",");
 
 				while (token) {
+					if (ipv6_count >= 5) {
+						SLSI_ERR(sdev, "Invalid number of ipv6 addr\n");
+						ret = -EINVAL;
+						goto exit;
+					}
 					if (in6_pton(token, strlen(token), ipv6addrlist[ipv6_count], -1, NULL) > 0) {
 						ipv6_count++;
 					} else {
@@ -7201,6 +7344,11 @@ static int slsi_set_delayed_wakeup_type(struct net_device *dev, char *command, i
 			} else {
 				token = strsep((char **)&ioctl_args->args[i], ",");
 				while (token) {
+					if (ipv4_count >= 5) {
+						SLSI_ERR(sdev, "Invalid number of ipv4 addr\n");
+						ret = -EINVAL;
+						goto exit;
+					}
 					if (in4_pton(token, strlen(token), ipv4addrlist[ipv4_count], -1, NULL) > 0) {
 						ipv4_count++;
 					} else {
@@ -7701,6 +7849,23 @@ static int slsi_get_tdls_num_of_session(struct net_device *dev, char *command, i
 	return len;
 }
 
+static int slsi_get_tas_mode(struct net_device *dev, char *command, int buf_len)
+{
+#if defined(CONFIG_SCSC_WLAN_TAS)
+	struct netdev_vif *ndev_vif = netdev_priv(dev);
+	struct slsi_dev *sdev = ndev_vif->sdev;
+#endif
+	int tas_mode = 0;
+	int len;
+
+#if defined(CONFIG_SCSC_WLAN_TAS)
+	tas_mode = sdev->tas_info.sar_method;
+#endif
+
+	len = snprintf(command, buf_len, "%d\n", tas_mode);
+	return len;
+}
+
 static const struct slsi_ioctl_fn slsi_ioctl_fn_table[] = {
 	{ CMD_SETSUSPENDMODE,               slsi_set_suspend_mode },
 	{ CMD_SETJOINPREFER,                slsi_update_rssi_boost },
@@ -7800,6 +7965,9 @@ static const struct slsi_ioctl_fn slsi_ioctl_fn_table[] = {
 	{ CMD_P2PLOSTART,                   slsi_p2p_lo_start },
 	{ CMD_P2PLOSTOP,                    slsi_p2p_lo_stop },
 	{ CMD_SET_TX_POWER_CALLING,         slsi_set_tx_power_calling },
+	{ CMD_SET_TX_POWER_CALLING_CAT2,    slsi_set_tx_power_calling_cat2 },
+	{ CMD_GET_TX_POWER_CALLING,         slsi_get_tx_power_calling },
+	{ CMD_GET_AVG_TX_POWER,             slsi_get_avg_tx_power },
 	{ CMD_SET_CUSTOM_TX_POWER_CALLING,  slsi_set_custom_tx_power_calling },
 	{ CMD_SET_TX_POWER_SUB6_BAND,       slsi_set_tx_power_sub6_band },
 	{ CMD_POWER_MEASUREMENT_START,      slsi_start_power_measurement_detection },
@@ -7885,6 +8053,7 @@ static const struct slsi_ioctl_fn slsi_ioctl_fn_table[] = {
 	{CMD_SET_GRACE_PERIOD,                 slsi_sched_pm_set_grace_period},
 	{CMD_GET_TDLS_MAX_SESSION,          slsi_get_tdls_max_session},
 	{CMD_GET_TDLS_NUM_OF_SESSION,       slsi_get_tdls_num_of_session},
+	{CMD_GET_TAS_MODE,                  slsi_get_tas_mode},
 };
 
 static int slsi_ioctl_fn_lookup(char *command, int len)

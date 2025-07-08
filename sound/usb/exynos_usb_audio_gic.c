@@ -92,6 +92,12 @@ static int usb_msg_to_uram(struct device *dev)
 	iowrite32(usb_msg.param3, base_addr + PARAM3);
 	iowrite32(usb_msg.param4, base_addr + PARAM4);
 
+	if (usb_audio.suspended) {
+		pr_info("%s: wait resume completion\n", __func__);
+		wait_for_completion_timeout(&usb_audio.resume_cmpl,
+						msecs_to_jiffies(500));
+	}
+
 	phy_set_mode_ext(g_hwinfo->phy, PHY_MODE_ABOX_POWER, 1);
 
 	ret = usb_audio_gic_generate_interrupt(dev, USB_IPC_IRQ);
@@ -282,6 +288,10 @@ static int exynos_usb_audio_hcd(struct usb_device *udev)
 			pr_err(" abox iommu mapping for erst is failed\n");
 			goto err;
 		}
+		if (g_hwinfo->need_first_probe) {
+			usb_audio.is_first_probe = 1;
+			g_hwinfo->need_first_probe = false;
+		}
 	} else {
 		/*ERST mapping*/
 		ret = usb_audio_iommu_map(USB_AUDIO_ERST, hwinfo->erst_addr,
@@ -389,6 +399,36 @@ err:
 	return ret;
 }
 
+static int exynos_sound_usb_pm_notifier(struct notifier_block *nb,
+		unsigned long action, void *nb_data)
+{
+
+	switch (action) {
+		case PM_SUSPEND_PREPARE:
+			pr_info("%s suspend prepare\n", __func__);
+			usb_audio.suspended = true;
+			reinit_completion(&usb_audio.resume_cmpl);
+			break;
+		case PM_POST_SUSPEND:
+			pr_info("%s post suspend\n", __func__);
+			usb_audio.suspended = false;
+			complete(&usb_audio.resume_cmpl);
+			break;
+		default:
+			break;
+	}
+	return NOTIFY_OK;
+}
+
+static void exynos_sound_usb_pm_noti_init()
+{
+	pr_info("%s\n", __func__);
+	init_completion(&usb_audio.resume_cmpl);
+	usb_audio.suspended = false;
+	usb_audio.pm_nb.notifier_call = exynos_sound_usb_pm_notifier;
+	register_pm_notifier(&usb_audio.pm_nb);
+}
+
 static int exynos_usb_audio_conn(struct usb_device *udev, int is_conn)
 {
 	int ret = 0;
@@ -405,6 +445,8 @@ static int exynos_usb_audio_conn(struct usb_device *udev, int is_conn)
 	if (is_conn == 0) {
 		if (usb_audio.is_audio) {
 			usb_audio.is_audio = 0;
+			usb_audio.user_scenario = AUDIO_MODE_NORMAL;
+			phy_set_mode_ext(usb_audio.phy, PHY_MODE_CALL_EXIT, AUDIO_MODE_NORMAL);
 			usb_audio.usb_audio_state = USB_AUDIO_REMOVING;
 			ret = usb_msg_to_uram(&udev->dev);
 			if (ret) {
@@ -1025,6 +1067,8 @@ int exynos_usb_audio_init(struct device *dev, struct platform_device *pdev)
 	usb_audio.usb_audio_state = USB_AUDIO_DISCONNECT;
 	usb_audio_connection = 0;
 
+	if (usb_audio.pm_nb.notifier_call == 0)
+		exynos_sound_usb_pm_noti_init();
 	//INIT_WORK(&usb_audio.usb_work, exynos_usb_audio_work);
 
 	return 0;
@@ -1061,20 +1105,20 @@ int exynos_usb_audio_connect(struct usb_interface *intf)
 			}
 		}
 
-		if ((usb_audio.usb_audio_state == USB_AUDIO_DISCONNECT)
-			|| (usb_audio.usb_audio_state == USB_AUDIO_TIMEOUT_PROBE)) {
-			pr_info("USB_AUDIO_IPC : %s - USB Audio set!\n", __func__);
-			exynos_usb_audio_set_device(udev);
-			exynos_usb_audio_hcd(udev);
-			exynos_usb_audio_conn(udev, 1);
-			exynos_usb_audio_desc(udev);
-			exynos_usb_audio_map_buf(udev);
-			if (udev->do_remote_wakeup)
-				usb_enable_autosuspend(udev);
-		} else {
-			pr_err("USB audio is can not support second device!!");
-			return -EPERM;
+		if ((usb_audio.usb_audio_state != USB_AUDIO_DISCONNECT)
+			&& (usb_audio.usb_audio_state != USB_AUDIO_TIMEOUT_PROBE)) {
+			exynos_usb_audio_conn(udev, 0);
+			pr_info("USB_AUDIO_IPC : %s - disconnect previous device!\n", __func__);
 		}
+
+		pr_info("USB_AUDIO_IPC : %s - USB Audio set!\n", __func__);
+		exynos_usb_audio_set_device(udev);
+		exynos_usb_audio_hcd(udev);
+		exynos_usb_audio_conn(udev, 1);
+		exynos_usb_audio_desc(udev);
+		exynos_usb_audio_map_buf(udev);
+		if (udev->do_remote_wakeup)
+			usb_enable_autosuspend(udev);
 	}
 
 	return 0;

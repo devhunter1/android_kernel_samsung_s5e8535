@@ -18,6 +18,7 @@
 #include "is-device-sensor-peri.h"
 #include "is-device-sensor.h"
 #include "is-video.h"
+#include "cis/is-cis.h"
 #ifdef USE_LEDS_FLASH
 #include <linux/muic/common/muic.h>
 
@@ -1426,6 +1427,25 @@ void is_sensor_dual_sync_mode_work(struct work_struct *data)
 	cis->dual_sync_work_mode = DUAL_SYNC_NONE;
 }
 
+void is_sensor_mipi_end_work(struct work_struct *data)
+{
+	int ret = 0;
+	struct is_cis *cis;
+	struct is_device_sensor_peri *sensor_peri;
+	struct v4l2_subdev *subdev_cis;
+
+	cis = container_of(data, struct is_cis, mipi_end_work);
+	sensor_peri = container_of(cis, struct is_device_sensor_peri, cis);
+
+	subdev_cis = sensor_peri->subdev_cis;
+	FIMC_BUG_VOID(!subdev_cis);
+
+	ret = sensor_cis_wait_streamoff_mipi_end(subdev_cis);
+	if (ret < 0) {
+		err("[%s]: sensor_cis_wait_streamoff_mipi_end fail", __func__);
+	}
+}
+
 void is_sensor_cis_global_setting_work(struct work_struct *data)
 {
 	int ret = 0;
@@ -1531,6 +1551,8 @@ void is_sensor_peri_init_work(struct is_device_sensor_peri *sensor_peri)
 	}
 
 	INIT_WORK(&sensor_peri->cis.dual_sync_mode_work, is_sensor_dual_sync_mode_work);
+	if (sensor_peri->cis.check_mipi_end)
+		INIT_WORK(&sensor_peri->cis.mipi_end_work, is_sensor_mipi_end_work);
 
 	if (sensor_peri->actuator && sensor_peri->actuator->actuator_ops) {
 		INIT_WORK(&sensor_peri->actuator->actuator_active_on, is_sensor_actuator_active_on_work);
@@ -1900,6 +1922,11 @@ int is_sensor_peri_s_stream(struct is_device_sensor *device,
 		else if (cis->dual_sync_work_mode != DUAL_SYNC_STREAMOFF)
 			ret = CALL_CISOPS(cis, cis_stream_off, subdev_cis);
 		if (ret == 0) {
+			if (cis->check_mipi_end) {
+				cis->wait_streamoff_done = false;
+				schedule_work(&sensor_peri->cis.mipi_end_work);
+			}
+
 			ret = CALL_CISOPS(cis, cis_wait_streamoff, subdev_cis);
 			if (ret < 0) {
 				err("[%s]: sensor wait stream off fail\n", __func__);
@@ -1912,6 +1939,10 @@ int is_sensor_peri_s_stream(struct is_device_sensor *device,
 					}
 				}
 #endif
+			}
+			if (cis->check_mipi_end) {
+				cis->wait_streamoff_done = true;
+				cis->time_wait_streamoff = jiffies;
 			}
 		}
 

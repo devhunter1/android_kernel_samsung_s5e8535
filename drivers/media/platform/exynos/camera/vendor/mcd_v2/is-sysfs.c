@@ -110,7 +110,7 @@ enum ssrm_camerainfo_operation {
 	SSRM_CAMERA_INFO_UPDATE,
 };
 
-struct ssrm_camera_data SsrmCameraInfo[IS_SENSOR_COUNT];
+struct ssrm_camera_data SsrmCameraInfo[SENSOR_POSITION_MAX];
 int ssrmCameraInfoCnt = 0;
 
 /* read firmware */
@@ -944,7 +944,7 @@ static ssize_t camera_ssrm_camera_info_store(struct device *dev,
 
 	switch (recv_data.operation) {
 	case SSRM_CAMERA_INFO_CLEAR:
-		for (i = 0; i < IS_SENSOR_COUNT; i++) { /* clear */
+		for (i = 0; i < SENSOR_POSITION_MAX; i++) { /* clear */
 			if (SsrmCameraInfo[i].ID == per_camera_info->ID) {
 				SsrmCameraInfo[i].ID = -1;
 				ssrmCameraInfoCnt--;
@@ -953,7 +953,7 @@ static ssize_t camera_ssrm_camera_info_store(struct device *dev,
 		break;
 
 	case SSRM_CAMERA_INFO_SET:
-		for (i = 0; i < IS_SENSOR_COUNT; i++) { /* find empty space*/
+		for (i = 0; i < SENSOR_POSITION_MAX; i++) { /* find empty space*/
 			if (SsrmCameraInfo[i].ID == -1) {
 				index = i;
 				break;
@@ -969,7 +969,7 @@ static ssize_t camera_ssrm_camera_info_store(struct device *dev,
 		break;
 
 	case SSRM_CAMERA_INFO_UPDATE:
-		for (i = 0; i < IS_SENSOR_COUNT; i++) {
+		for (i = 0; i < SENSOR_POSITION_MAX; i++) {
 			if (SsrmCameraInfo[i].ID == per_camera_info->ID) {
 				index = i;
 				break;
@@ -1003,7 +1003,7 @@ static ssize_t camera_ssrm_camera_info_show(struct device *dev,
 	SSRM_INFO_PRINT(SsrmCameraInfoExt, MODE);
 	strncat(buf, "\n", strlen("\n"));
 
-	for (i = 0; i < IS_SENSOR_COUNT; i++) {
+	for (i = 0; i < SENSOR_POSITION_MAX; i++) {
 		if (SsrmCameraInfo[i].ID != -1) {
 			strncat(buf, "[", strlen("["));
 			sprintf(temp_buffer, "ID=%d<%d>;", SsrmCameraInfo[i].ID, SsrmCameraInfo[i].ON);
@@ -1186,7 +1186,7 @@ static ssize_t camera_rear_phy_tune_show(struct device *dev,
 static ssize_t camera_supported_cameraIds_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
-	char temp_buf[IS_SENSOR_COUNT];
+	char temp_buf[SENSOR_POSITION_MAX];
 	char *end = "\n";
 	int i;
 
@@ -1747,7 +1747,7 @@ static ssize_t camera_hw_init_show(struct device *dev,
 	if (!check_module_init) {
 		is_vender_hw_init(vender);
 		check_module_init = true;
-		for (i = 0; i < IS_SENSOR_COUNT; i++) {
+		for (i = 0; i < SENSOR_POSITION_MAX; i++) {
 			SsrmCameraInfo[i].ID = -1;
 		}
 	}

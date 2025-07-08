@@ -5976,7 +5976,6 @@ static void wq_watchdog_timer_fn(struct timer_list *unused)
 		if (IS_ENABLED(CONFIG_SEC_DEBUG_WORKQUEUE_LOCKUP_PANIC))
 			BUG_ON(is_continuously_busy > 1);
 	}
-
 	wq_watchdog_reset_touched();
 	mod_timer(&wq_watchdog_timer, jiffies + thresh);
 }

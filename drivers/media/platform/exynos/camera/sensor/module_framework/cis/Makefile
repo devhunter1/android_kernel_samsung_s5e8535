@@ -74,6 +74,8 @@ obj-$(CONFIG_CAMERA_CIS_SC201_OBJ) += is-cis-sc201.o
 obj-$(CONFIG_CAMERA_CIS_SC501_OBJ) += is-cis-sc501.o
 obj-$(CONFIG_CAMERA_CIS_GC02M1_OBJ) += is-cis-gc02m1.o
 obj-$(CONFIG_CAMERA_CIS_GC02M2_OBJ) += is-cis-gc02m2.o
+obj-$(CONFIG_CAMERA_CIS_GC13A0_OBJ) += is-cis-gc13a0.o
+obj-$(CONFIG_CAMERA_CIS_SC1321_OBJ) += is-cis-sc1321.o
 
 EXTRA_CFLAGS += -I$(srctree)/drivers/media/platform/exynos/camera
 EXTRA_CFLAGS += -I$(srctree)/drivers/media/platform/exynos/camera/include

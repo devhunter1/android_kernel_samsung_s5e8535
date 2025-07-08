@@ -35,6 +35,8 @@
 #define CAL_OFFSET0		(0x01FD0000)
 #define CAL_OFFSET1		(0x01FE0000)
 
+#define ZERO_IF_NEG(val) ((val) > 0 ? (val) : 0)
+
 struct is_vender {
 	char fw_path[IS_PATH_LEN];
 	char request_fw_path[IS_PATH_LEN];

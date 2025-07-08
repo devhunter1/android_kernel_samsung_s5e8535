@@ -1570,6 +1570,7 @@ static int android_setup(struct usb_gadget *gadget,
 		gi->connected = 1;
 		schedule_work(&gi->work);
 	}
+
 	list_for_each_entry(fi, &gi->available_func, cfs_list) {
 		if (fi != NULL && fi->f != NULL && fi->f->setup != NULL) {
 			value = fi->f->setup(fi->f, c);

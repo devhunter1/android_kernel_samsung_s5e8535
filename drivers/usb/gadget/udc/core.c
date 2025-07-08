@@ -276,8 +276,7 @@ int usb_ep_queue(struct usb_ep *ep,
 	int ret = 0;
 
 	if (!ep->enabled && ep->address) {
-		pr_debug("USB gadget: queue request to disabled ep 0x%x (%s)\n",
-				 ep->address, ep->name);
+		pr_warn("%s: ep is disabled\n", __func__);
 		ret = -ESHUTDOWN;
 		goto out;
 	}

@@ -1167,6 +1167,12 @@ void mfc_ctrl_reset_buf(struct list_head *head)
 	struct mfc_buf_ctrl *buf_ctrl;
 
 	list_for_each_entry(buf_ctrl, head, list) {
+		if (buf_ctrl == NULL) {
+			mfc_pr_err("buf_ctrl must not be NULL. head: %p, head->prev: %p, head->next: %p\n",
+				head, head->prev, head->next);
+			return;
+		}
+
 		buf_ctrl->has_new = 0;
 		buf_ctrl->val = 0;
 		buf_ctrl->old_val = 0;
@@ -1346,6 +1352,12 @@ void mfc_ctrl_to_buf(struct mfc_ctx *ctx, struct list_head *head)
 			continue;
 
 		list_for_each_entry(buf_ctrl, head, list) {
+			if (buf_ctrl == NULL) {
+				mfc_ctx_err("buf_ctrl must not be NULL. head: %p, head->prev: %p, head->next: %p\n",
+					head, head->prev, head->next);
+				return;
+			}
+
 			if (!(buf_ctrl->type & MFC_CTRL_TYPE_SET))
 				continue;
 
@@ -1373,6 +1385,12 @@ void mfc_ctrl_to_ctx(struct mfc_ctx *ctx, struct list_head *head)
 	struct mfc_buf_ctrl *buf_ctrl;
 
 	list_for_each_entry(buf_ctrl, head, list) {
+		if (buf_ctrl == NULL) {
+			mfc_ctx_err("buf_ctrl must not be NULL. head: %p, head->prev: %p, head->next: %p\n",
+				head, head->prev, head->next);
+			return;
+		}
+
 		if (!(buf_ctrl->type & MFC_CTRL_TYPE_GET) || !buf_ctrl->has_new)
 			continue;
 
@@ -1400,6 +1418,12 @@ int mfc_ctrl_get_buf_val(struct mfc_ctx *ctx, struct list_head *head, unsigned i
 	int value = 0;
 
 	list_for_each_entry(buf_ctrl, head, list) {
+		if (buf_ctrl == NULL) {
+			mfc_ctx_err("buf_ctrl must not be NULL. head: %p, head->prev: %p, head->next: %p\n",
+				head, head->prev, head->next);
+			return value;
+		}
+
 		if (buf_ctrl->id == id) {
 			value = buf_ctrl->val;
 			mfc_ctx_debug(6, "[CTRLS] Get buffer control id: 0x%08x, val: %d (%#x)\n",
@@ -1417,6 +1441,12 @@ void mfc_ctrl_update_buf_val(struct mfc_ctx *ctx, struct list_head *head,
 	struct mfc_buf_ctrl *buf_ctrl;
 
 	list_for_each_entry(buf_ctrl, head, list) {
+		if (buf_ctrl == NULL) {
+			mfc_ctx_err("buf_ctrl must not be NULL. head: %p, head->prev: %p, head->next: %p\n",
+				head, head->prev, head->next);
+			return;
+		}
+
 		if (buf_ctrl->id == id) {
 			buf_ctrl->val = value;
 			mfc_ctx_debug(6, "[CTRLS] Update buffer control id: 0x%08x, val: %d (%#x)\n",

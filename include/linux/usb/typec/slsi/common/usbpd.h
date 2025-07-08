@@ -630,6 +630,7 @@ typedef struct usbpd_phy_ops {
 	void	(*energy_now)(void *, int);
 	void	(*authentic)(void *);
 	void	(*set_usbpd_reset)(void *);
+	void	(*vbus_onoff)(void *);
 	int		(*ops_get_fsm_state)(void *);
 	int		(*get_detach_valid)(void *);
 	void	(*rprd_mode_change)(void *, u8);
@@ -873,6 +874,7 @@ extern void usbpd_manager_turn_off_power_supply(struct usbpd_data *);
 extern void usbpd_manager_turn_off_power_sink(struct usbpd_data *);
 extern void usbpd_manager_turn_off_vconn(struct usbpd_data *);
 extern bool usbpd_manager_data_role_swap(struct usbpd_data *);
+extern void usbpd_manager_set_analog_audio(struct usbpd_data *);
 extern int usbpd_manager_get_identity(struct usbpd_data *);
 extern int usbpd_manager_get_svids(struct usbpd_data *);
 extern int usbpd_manager_get_modes(struct usbpd_data *);

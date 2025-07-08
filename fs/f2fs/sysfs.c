@@ -27,7 +27,7 @@
 #define ST_LOG(fmt, ...)
 #endif
 
-#define SEC_BIGDATA_VERSION		(2)
+#define SEC_BIGDATA_VERSION		(3)
 
 static struct proc_dir_entry *f2fs_proc_root;
 
@@ -71,6 +71,8 @@ const char *sec_blkops_dbg_type_names[NR_F2FS_SEC_DBG_ENTRY] = {
 const char *sec_fua_mode_names[NR_F2FS_SEC_FUA_MODE] = {
 	"NONE",
 	"ROOT",
+	"DIR",
+	"NODE",
 	"ALL",
 };
 
@@ -361,6 +363,9 @@ static void __sec_bigdata_init_value(struct f2fs_sb_info *sbi,
 		sbi->sec_stat.hot_file_written_blocks = 0;
 		sbi->sec_stat.cold_file_written_blocks = 0;
 		sbi->sec_stat.warm_file_written_blocks = 0;
+		sbi->sec_stat.data_fua_written_blocks = 0;
+		sbi->sec_stat.node_fua_written_blocks = 0;
+		sbi->sec_stat.total_fua_written_blocks = 0;
 		sbi->sec_stat.max_inmem_pages = 0;
 		sbi->sec_stat.drop_inmem_all = 0;
 		sbi->sec_stat.drop_inmem_files = 0;
@@ -450,12 +455,14 @@ static ssize_t f2fs_sbi_show(struct f2fs_attr *a,
 		"\"%s\":\"%llu\",\"%s\":\"%llu\",\"%s\":\"%llu\",\"%s\":\"%llu\","
 		"\"%s\":\"%llu\",\"%s\":\"%llu\",\"%s\":\"%llu\",\"%s\":\"%llu\","
 		"\"%s\":\"%llu\",\"%s\":\"%llu\",\"%s\":\"%llu\",\"%s\":\"%llu\","
+		"\"%s\":\"%llu\",\"%s\":\"%llu\",\"%s\":\"%llu\",\"%s\":\"%llu\","
 		"\"%s\":\"%llu\",\"%s\":\"%llu\",\"%s\":\"%llu\",\"%s\":\"%u\","
 		"\"%s\":\"%u\",\"%s\":\"%u\"\n",
 			"CP",		sbi->sec_stat.cp_cnt[STAT_CP_ALL],
 			"CPBG",		sbi->sec_stat.cp_cnt[STAT_CP_BG],
 			"CPSYNC",	sbi->sec_stat.cp_cnt[STAT_CP_FSYNC],
 			"CPNONRE",	sbi->sec_stat.cpr_cnt[CP_NON_REGULAR],
+			"CPCOMPR",	sbi->sec_stat.cpr_cnt[CP_COMPRESSED],
 			"CPSBNEED",	sbi->sec_stat.cpr_cnt[CP_SB_NEED_CP],
 			"CPWPINO",	sbi->sec_stat.cpr_cnt[CP_WRONG_PINO],
 			"CP_MAX_INT",	sbi->sec_stat.cp_max_interval,
@@ -469,6 +476,9 @@ static ssize_t f2fs_sbi_show(struct f2fs_attr *a,
 			"HOT_DATA",	sbi->sec_stat.hot_file_written_blocks >> 8,
 			"COLD_DATA",	sbi->sec_stat.cold_file_written_blocks >> 8,
 			"WARM_DATA",	sbi->sec_stat.warm_file_written_blocks >> 8,
+			"DATA_FUA",	sbi->sec_stat.data_fua_written_blocks,
+			"NODE_FUA",	sbi->sec_stat.node_fua_written_blocks,
+			"TOTAL_FUA",	sbi->sec_stat.total_fua_written_blocks,
 			"MAX_INMEM",	sbi->sec_stat.max_inmem_pages,
 			"DROP_INMEM",	sbi->sec_stat.drop_inmem_all,
 			"DROP_INMEMF",	sbi->sec_stat.drop_inmem_files,
@@ -756,7 +766,7 @@ out:
 	}
 #ifdef CONFIG_F2FS_ML_BASED_STREAM_SEPARATION
 	if (!strcmp(a->attr.name, "streamid_attr")) {
-		char *streamid_buf;
+		char *streamid_buf, *streamid_buf_orig;
 		char *ptr;
 		long long streamid_attr[STREAMID_PARAMS];
 		long long lt;
@@ -766,17 +776,18 @@ out:
 		if (!streamid_buf)
 			return -ENOMEM;
 
+		streamid_buf_orig = streamid_buf;
 		while ((ptr = strsep(&streamid_buf, " ")) != NULL) {
 
 			ret = kstrtoll(skip_spaces(ptr), 10, &lt);
 			if (ret < 0 || i >= STREAMID_PARAMS) {
-				kvfree(streamid_buf);
+				kvfree(streamid_buf_orig);
 				return -EINVAL;
 			}
 			streamid_attr[i++] = lt;
 		}
 
-		kvfree(streamid_buf);
+		kvfree(streamid_buf_orig);
 
 		if (i != STREAMID_PARAMS)
 			return -EINVAL;
@@ -1052,6 +1063,20 @@ out:
 		sbi->revoked_atomic_block = 0;
 		return count;
 	}
+
+#ifdef CONFIG_F2FS_SEC_SYSFS_DISCARD_SLAB_THRESHOLD
+	if (!strcmp(a->attr.name, "discard_cmd_slab_thresh_MB")) {
+		SM_I(sbi)->dcc_info->discard_cmd_slab_thresh_cnt =
+			((unsigned int)t << 20) / sizeof(struct discard_cmd);
+		return count;
+	}
+
+	if (!strcmp(a->attr.name, "undiscard_thresh_MB")) {
+		SM_I(sbi)->dcc_info->undiscard_thresh_blks =
+			(unsigned int)t << 8;
+		return count;
+	}
+#endif
 
 	*ui = (unsigned int)t;
 

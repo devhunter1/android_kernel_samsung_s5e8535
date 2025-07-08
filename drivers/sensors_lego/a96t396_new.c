@@ -3039,6 +3039,11 @@ static int a96t396_ioctl_fw_hal_to_kerenl(struct a96t396_data *data, void __user
 		GRIP_INFO("ioctl status %d, filesize = %d", status, temp->fw_size);
 		if (temp->fw_size) {
 			data->firm_data_ums = kzalloc(temp->fw_size, GFP_KERNEL);
+			if (!data->firm_data_ums) {
+				GRIP_ERR("firm_data_ums memory alloc fail");
+				vfree(temp);
+				return -ENOMEM;
+			}
 			memcpy((char __user *)data->firm_data_ums, temp->fw_data, temp->fw_size);
 			data->firm_size = temp->fw_size;
 			data->ioctl_pass = temp->pass;
@@ -3497,10 +3502,10 @@ static int a96t396_probe(struct i2c_client *client,
 		}
 		memcpy(sensor_attributes + grip_sensor_attr_size - 1, multi_sensor_attrs, sizeof(multi_sensor_attrs));
 	}
-	ret = sensors_register(data->dev, data, sensor_attributes,
+	ret = sensors_register(&data->dev, data, sensor_attributes,
 				(char *)module_name[data->ic_num]);
 #else
-	ret = sensors_register(data->dev, data, grip_sensor_attributes,
+	ret = sensors_register(&data->dev, data, grip_sensor_attributes,
 				(char *)module_name[data->ic_num]);
 #endif
 #endif

@@ -27,6 +27,7 @@ config USB_XHCI_HCD
 	  To compile this driver as a module, choose M here: the
 	  module will be called xhci-hcd.
 
+
 if USB_XHCI_HCD
 config USB_XHCI_DBGCAP
 	bool "xHCI support for debug capability"

@@ -972,16 +972,36 @@ static void exynos_panel_parse_vendor_pps(struct device *dev, struct exynos_pane
 	}
 
 	decon->config.vendor_pps_en = of_property_read_bool(np, "vendor_pps_enable");
-	of_property_read_u32(np, "initial_xmit_delay",
-			&decon->config.vendor_pps.initial_xmit_delay);
-	of_property_read_u32(np, "initial_dec_delay",
-			&decon->config.vendor_pps.initial_dec_delay);
-	of_property_read_u32(np, "scale_increment_interval",
-			&decon->config.vendor_pps.scale_increment_interval);
-	of_property_read_u32(np, "final_offset",
-			&decon->config.vendor_pps.final_offset);
-	of_property_read_u32(np, "comp_cfg",
-		&decon->config.vendor_pps.comp_cfg);
+	panel_info(ctx, "vendor_pps_en: %d\n", decon->config.vendor_pps_en);
+
+	if (!of_property_read_u32(np, "initial_xmit_delay",
+			&decon->config.vendor_pps.initial_xmit_delay))
+		panel_info(ctx, "initial_xmit_delay: %d\n", decon->config.vendor_pps.initial_xmit_delay);
+
+	if (!of_property_read_u32(np, "initial_dec_delay",
+			&decon->config.vendor_pps.initial_dec_delay))
+		panel_info(ctx, "initial_dec_delay: %d\n", decon->config.vendor_pps.initial_dec_delay);
+
+	if (!of_property_read_u32(np, "scale_increment_interval",
+			&decon->config.vendor_pps.scale_increment_interval))
+		panel_info(ctx, "scale_increment_interval: %d\n", decon->config.vendor_pps.scale_increment_interval);
+	
+	if (!of_property_read_u32(np, "final_offset",
+			&decon->config.vendor_pps.final_offset))
+		panel_info(ctx, "final_offset: %d\n", decon->config.vendor_pps.final_offset);
+
+	if (!of_property_read_u32(np, "nfl_bpg_offset",
+			&decon->config.vendor_pps.nfl_bpg_offset))
+		panel_info(ctx, "nfl_bpg_offset: %d\n", decon->config.vendor_pps.nfl_bpg_offset);
+
+	if (!of_property_read_u32(np, "slice_bpg_offset",
+			&decon->config.vendor_pps.slice_bpg_offset))
+		panel_info(ctx, "slice_bpg_offset: %d\n", decon->config.vendor_pps.slice_bpg_offset);
+
+	if (!of_property_read_u32(np, "comp_cfg",
+			&decon->config.vendor_pps.comp_cfg))
+		panel_info(ctx, "comp_cfg: %d\n", decon->config.vendor_pps.comp_cfg);
+
 	if (dsim != NULL)
 		dsim->config.lp_force_en = of_property_read_bool(
 			np, "samsung,force-seperate-trans");

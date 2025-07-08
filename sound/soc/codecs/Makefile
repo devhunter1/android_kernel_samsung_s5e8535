@@ -332,6 +332,7 @@ snd-soc-tpa6130a2-objs := tpa6130a2.o
 snd-soc-tas2552-objs := tas2552.o
 snd-soc-tas2562-objs := tas2562.o
 snd-soc-tas2764-objs := tas2764.o
+snd-soc-fs1816-objs := fs1816.o
 # Mux
 snd-soc-simple-mux-objs := simple-mux.o
 
@@ -672,6 +673,7 @@ obj-$(CONFIG_SND_SOC_LPASS_WSA_MACRO)	+= snd-soc-lpass-wsa-macro.o
 obj-$(CONFIG_SND_SOC_LPASS_VA_MACRO)	+= snd-soc-lpass-va-macro.o
 obj-$(CONFIG_SND_SOC_LPASS_RX_MACRO)	+= snd-soc-lpass-rx-macro.o
 obj-$(CONFIG_SND_SOC_LPASS_TX_MACRO)	+= snd-soc-lpass-tx-macro.o
+obj-$(CONFIG_SND_SOC_FS1816) += snd-soc-fs1816.o
 #for AWINIC AW882XX Smart PA 
 obj-$(CONFIG_SND_SMARTPA_AW882XX)	+= aw882xx/
 

@@ -79,6 +79,10 @@ config SND_SOC_SAMSUNG_EXYNOS8535_SOUND
 	tristate "Sound card support on exynos8535"
 	select SND_SOC_SAMSUNG_ABOX
 
+config SND_SOC_SAMSUNG_EXYNOS8535_AUDIO
+	tristate "Sound card support on exynos8535"
+	select SND_SOC_SAMSUNG_ABOX
+
 config SND_SOC_SAMSUNG_EXYNOS8835_SOUND
 	tristate "Sound card support on exynos8835"
 	select SND_SOC_SAMSUNG_ABOX

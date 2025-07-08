@@ -24,11 +24,20 @@
 
 #define SERIAL_NUM_SIZE 7
 
+#define HEALTH_DESC_PARAM_SEC_FLT 0x22
+#define HEALTH_DESC_PARAM_KIC_FLT 0x11
+#define HEALTH_DESC_PARAM_MIC_FLT 0x5
+#define HEALTH_DESC_PARAM_SKH_FLT 0x5
+
 struct ufs_vendor_dev_info {
 	struct ufs_hba *hba;
 	char unique_number[UFS_UN_MAX_DIGITS];
 	u8 lt;
-	unsigned int lc;
+	u16 flt;
+	u8 eli;
+	unsigned int ic;
+	char s_info[512];
+	char shi[256];
 
 	bool device_stuck;
 };

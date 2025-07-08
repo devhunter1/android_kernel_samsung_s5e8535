@@ -159,6 +159,10 @@ struct exynos_usb_audio {
 	u64 save_dma;
 
 	bool use_uram;
+
+	struct notifier_block	pm_nb;
+	struct completion	resume_cmpl;
+	int			suspended;
 };
 
 struct hcd_hw_info {
@@ -192,6 +196,7 @@ struct hcd_hw_info {
 	void *in_buf;
 	u64 in_dma;
 	int use_uram;
+	int need_first_probe;
 	int rawdesc_length;
 	/* phy */
 	struct phy *phy;

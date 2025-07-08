@@ -197,6 +197,9 @@ obj-$(CONFIG_VISION_SUPPORT)	+= vision/
 
 obj-${CONFIG_DRV_SAMSUNG}           += samsung/
 
+# uH
+obj-$(CONFIG_UH)		+= uh/
+
 ifeq ($(CONFIG_EXYNOS_VARIANT1),y)
 include $(srctree)/drivers/Makefile.variant1
 endif

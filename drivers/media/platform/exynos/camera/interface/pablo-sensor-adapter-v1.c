@@ -723,9 +723,11 @@ callback:
 
 static int __pablo_sensor_adt_create_ktherad(struct pablo_sensor_adt_v1 *sensor_adt)
 {
+	int ret;
 	ulong flag;
 	u32 instance, work_idx;
 	struct pablo_sensor_task *sensor_task;
+	struct sched_param param = {.sched_priority = TASK_SENSOR_WORK_PRIO};
 
 	instance = sensor_adt->instance;
 	/* create kthread worker */
@@ -737,6 +739,10 @@ static int __pablo_sensor_adt_create_ktherad(struct pablo_sensor_adt_v1 *sensor_
 		sensor_task->worker = NULL;
 		return PTR_ERR(sensor_task->worker);
 	}
+
+	ret = sched_setscheduler_nocheck(sensor_task->worker->task, SCHED_FIFO, &param);
+	if (ret)
+		merr_adt("sched_setscheduler_nocheck is fail(%d)", instance, ret);
 
 	/* init spin lock */
 	spin_lock_init(&sensor_task->work_lock);

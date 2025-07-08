@@ -49,6 +49,7 @@
 #include <linux/writeback.h>
 #include <linux/cpu.h>
 #include <linux/cpuset.h>
+#include <linux/memcontrol.h>
 #include <linux/cgroup.h>
 #include <linux/efi.h>
 #include <linux/tick.h>
@@ -112,6 +113,12 @@
 #include <trace/events/initcall.h>
 
 #include <kunit/test.h>
+#ifdef CONFIG_RKP
+#include <linux/rkp.h>
+#endif
+#ifdef CONFIG_KDP
+#include <linux/kdp.h>
+#endif
 
 #ifdef CONFIG_SECURITY_DEFEX
 #include <linux/defex.h>
@@ -1009,12 +1016,19 @@ asmlinkage __visible void __init __no_sanitize_address start_kernel(void)
 	sort_main_extable();
 	trap_init();
 	mm_init();
+#ifdef CONFIG_RKP
+	rkp_init();
+#endif
 	poking_init();
 	ftrace_init();
 
 	/* trace_printk can be enabled here */
 	early_trace_init();
 
+#ifdef CONFIG_KDP
+	// move to after, early_trace_init. cuz security_integrity_current failed
+	kdp_enable = true;
+#endif
 	/*
 	 * Set up the scheduler prior starting any interrupts (such as the
 	 * timer interrupt). Full topology setup happens at smp_init()
@@ -1127,6 +1141,10 @@ asmlinkage __visible void __init __no_sanitize_address start_kernel(void)
 		efi_enter_virtual_mode();
 #endif
 	thread_stack_cache_init();
+#ifdef CONFIG_KDP
+	if (kdp_enable)
+		kdp_init();
+#endif
 	cred_init();
 	fork_init();
 	proc_caches_init();
@@ -1142,6 +1160,7 @@ asmlinkage __visible void __init __no_sanitize_address start_kernel(void)
 	proc_root_init();
 	nsfs_init();
 	cpuset_init();
+	mem_cgroup_init();
 	cgroup_init();
 	taskstats_init_early();
 	delayacct_init();
@@ -1542,8 +1561,12 @@ static int __ref kernel_init(void *unused)
 
 	if (ramdisk_execute_command) {
 		ret = run_init_process(ramdisk_execute_command);
-		if (!ret)
+		if (!ret) {
+#ifdef CONFIG_RKP
+			rkp_deferred_init();
+#endif
 			return 0;
+		}
 		pr_err("Failed to execute %s (error %d)\n",
 		       ramdisk_execute_command, ret);
 	}

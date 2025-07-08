@@ -1128,6 +1128,8 @@ static inline void csi_s_config_dma(struct is_device_csi *csi, struct is_vci_con
 				queue = GET_SUBDEV_QUEUE(dma_subdev);
 				if (queue) {
 					framecfg = queue->framecfg;
+					memcpy(&fmt, queue->framecfg.format, sizeof(struct is_fmt));
+					framecfg.format = &fmt;
 				} else {
 					err("vc[%d] subdev queue is NULL!!", vc);
 					return;

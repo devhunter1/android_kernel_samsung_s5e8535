@@ -134,24 +134,26 @@ const char *WATER_STATUS_TO_STR[] = {
 };
 #endif
 
+#define SET_STATUS(status, shift) \
+	status[shift > 63 ? 1:0] |= 1ULL << (shift & 63)
+
 static void s2mf301_usbpd_test_read(struct s2mf301_usbpd_data *usbpd_data)
 {
 	struct i2c_client *i2c = usbpd_data->i2c;
-	u8 data[10];
+	static int reg_list[] = {0x01, 0x18, 0x1b, 0x27, 0x28, 0x2e,
+		0x40, 0xe2, 0xb3, 0xb4, 0xf7};
+	u8 data = 0;
+	char str[1016] = {0,};
+	int i = 0, reg_list_size = 0;
 
-	s2mf301_usbpd_read_reg(i2c, 0x1, &data[0]);
-	s2mf301_usbpd_read_reg(i2c, 0x18, &data[1]);
-	s2mf301_usbpd_read_reg(i2c, 0x27, &data[2]);
-	s2mf301_usbpd_read_reg(i2c, 0x28, &data[3]);
-	s2mf301_usbpd_read_reg(i2c, 0x40, &data[4]);
-	s2mf301_usbpd_read_reg(i2c, 0xe2, &data[5]);
-	s2mf301_usbpd_read_reg(i2c, 0xb3, &data[6]);
-	s2mf301_usbpd_read_reg(i2c, 0xb4, &data[7]);
-	s2mf301_usbpd_read_reg(i2c, 0xf7, &data[8]);
+	reg_list_size = ARRAY_SIZE(reg_list);
+	for (i = 0; i < reg_list_size; i++) {
+		s2mf301_usbpd_read_reg(i2c, reg_list[i], &data);
+		sprintf(str+strlen(str), "0x%02x[0x%02x], ", reg_list[i], data);
+	}
 
-	pr_info("%s, 0x1(%x) 0x18(%x) 0x27(%x) 0x28(%x) 0x40(%x) 0xe2(%x) 0xb3(%x) 0xb4(%x) 0xf7(%X)\n",
-			__func__, data[0], data[1], data[2], data[3], data[4],
-										data[5], data[6], data[7], data[8]);
+	/* print buffer */
+	pr_info("[PD]%s: %s\n", __func__, str);
 }
 
 #if IS_ENABLED(CONFIG_S2MF301_PDIC_SUPPORT_S2MC501)
@@ -457,6 +459,11 @@ static int s2mf301_usbpd_check_accessory(struct s2mf301_usbpd_data *pdic_data)
 {
 	struct i2c_client *i2c = pdic_data->i2c;
 	u8 val, cc1_val, cc2_val;
+	struct device *dev = pdic_data->dev;
+	struct usbpd_data *pd_data = dev_get_drvdata(dev);
+#ifdef CONFIG_USB_NOTIFY_PROC_LOG
+	int event;
+#endif
 
 	s2mf301_usbpd_read_reg(i2c, S2MF301_REG_PLUG_MON1, &val);
 
@@ -469,6 +476,11 @@ static int s2mf301_usbpd_check_accessory(struct s2mf301_usbpd_data *pdic_data)
 	}
 	if (cc1_val == USBPD_Ra && cc2_val == USBPD_Ra) {
 		pr_info("%s : Audio Accessory\n", __func__);
+		usbpd_manager_set_analog_audio(pd_data);
+#ifdef CONFIG_USB_NOTIFY_PROC_LOG
+		event = NOTIFY_EXTRA_USB_ANALOGAUDIO;
+		store_usblog_notify(NOTIFY_EXTRA, (void *)&event, NULL);
+#endif
 		return -1;
 	}
 
@@ -1384,13 +1396,70 @@ static void s2mf301_usbpd_authentic(void *_data)
 	s2mf301_usbpd_write_reg(i2c, S2MF301_REG_PLUG_CTRL_VBUS_MUX, data);
 }
 
-static void s2mf301_usbpd_set_usbpd_reset(void *_data)
+static void s2mf301_usbpd_self_reset(struct s2mf301_usbpd_data *pdic_data)
+{
+	u8 reg_data;
+
+	s2mf301_usbpd_test_read(pdic_data);
+	s2mf301_usbpd_read_reg(pdic_data->i2c, 0x01, &reg_data);
+	reg_data |= (1<<1);
+	s2mf301_usbpd_write_reg(pdic_data->i2c, 0x01, reg_data);
+	s2mf301_usbpd_read_reg(pdic_data->i2c, 0x01, &reg_data);
+	reg_data &= ~(1<<1);
+	s2mf301_usbpd_write_reg(pdic_data->i2c, 0x01, reg_data);
+	s2mf301_usbpd_read_reg(pdic_data->i2c, 0x01, &reg_data);
+
+	s2mf301_usbpd_read_reg(pdic_data->i2c, 0x08, &reg_data);
+	reg_data &= ~(1<<5);
+	s2mf301_usbpd_write_reg(pdic_data->i2c, 0x08, reg_data);
+	reg_data |= (1<<5);
+	s2mf301_usbpd_write_reg(pdic_data->i2c, 0x08, reg_data);
+	reg_data &= ~(1<<5);
+	s2mf301_usbpd_write_reg(pdic_data->i2c, 0x08, reg_data);
+
+	s2mf301_usbpd_read_reg(pdic_data->i2c, 0x00, &reg_data);
+	reg_data &= ~(1<<1);
+	s2mf301_usbpd_write_reg(pdic_data->i2c, 0x00, reg_data);
+	reg_data |= (1<<1);
+	s2mf301_usbpd_write_reg(pdic_data->i2c, 0x00, reg_data);
+	reg_data &= ~(1<<1);
+	s2mf301_usbpd_write_reg(pdic_data->i2c, 0x00, reg_data);
+
+}
+
+static void s2mf301_usbpd_vbus_onoff(void *_data)
 {
 	struct usbpd_data *pd_data = _data;
 	struct s2mf301_usbpd_data *pdic_data = pd_data->phy_driver_data;
 
-	s2mf301_usbpd_set_vbus_wakeup(pdic_data, VBUS_WAKEUP_DISABLE);
-	s2mf301_usbpd_set_vbus_wakeup(pdic_data, VBUS_WAKEUP_ENABLE);
+	s2mf301_usbpd_self_reset(pdic_data);
+}
+
+static void s2mf301_usbpd_set_usbpd_reset(void *_data)
+{
+	struct usbpd_data *pd_data = _data;
+	struct s2mf301_usbpd_data *pdic_data = pd_data->phy_driver_data;
+	u8 intr[S2MF301_MAX_NUM_INT_STATUS] = {0};
+
+	s2mf301_usbpd_self_reset(pdic_data);
+
+	msleep(20);
+
+	s2mf301_usbpd_test_read(pdic_data);
+	s2mf301_set_irq_enable(pdic_data, ENABLED_INT_0, ENABLED_INT_1,
+			ENABLED_INT_2, ENABLED_INT_3, ENABLED_INT_4, ENABLED_INT_5);
+
+	s2mf301_usbpd_bulk_read(pdic_data->i2c, S2MF301_REG_INT_STATUS0, S2MF301_MAX_NUM_INT_STATUS, intr);
+	pr_info("%s, --, clear status[0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x]\n",
+			__func__, intr[0], intr[1], intr[2], intr[3], intr[4],
+			intr[5], intr[6], intr[7], intr[8], intr[9]);
+
+	s2mf301_set_normal_mode(pdic_data);
+	s2mf301_usbpd_reg_init(pdic_data);
+	s2mf301_usbpd_test_read(pdic_data);
+
+//	SET_STATUS(pdic_data->status_reg, PLUG_ATTACH);
+	schedule_delayed_work(&pdic_data->plug_work, 0);
 }
 
 
@@ -2767,12 +2836,14 @@ static void s2mf301_usbpd_otg_attach(struct s2mf301_usbpd_data *pdic_data)
 	pdic_event_work(pd_data, PDIC_NOTIFY_DEV_USB, PDIC_NOTIFY_ID_USB,
 			1/*attach*/, USB_STATUS_NOTIFY_ATTACH_DFP/*drp*/, 0);
 	/* add to turn on external 5V */
-#if IS_ENABLED(CONFIG_USB_HOST_NOTIFY)
+#if IS_ENABLED(CONFIG_USB_HOST_NOTIFY) && IS_ENABLED(CONFIG_DISABLE_LOCKSCREEN_USB_RESTRICTION)
 	if (!is_blocked(o_notify, NOTIFY_BLOCK_TYPE_HOST)) {
+#endif
 #if IS_ENABLED(CONFIG_PM_S2MF301)
 		s2mf301_usbpd_check_vbus(pdic_data, 800, VBUS_OFF);
 #endif
 		usbpd_manager_vbus_turn_on_ctrl(pd_data, VBUS_ON);
+#if IS_ENABLED(CONFIG_USB_HOST_NOTIFY) && IS_ENABLED(CONFIG_DISABLE_LOCKSCREEN_USB_RESTRICTION)
 	}
 #endif
 	usbpd_manager_acc_handler_cancel(dev);
@@ -3234,9 +3305,8 @@ static void s2mf301_usbpd_notify_detach(struct s2mf301_usbpd_data *pdic_data)
 	pdic_event_work(pd_data, PDIC_NOTIFY_DEV_MUIC, PDIC_NOTIFY_ID_RID,
 							REG_RID_OPEN/*rid*/, 0, 0);
 
+	usbpd_manager_acc_detach(dev);
 	if (pdic_data->is_host > HOST_OFF || pdic_data->is_client > CLIENT_OFF) {
-		usbpd_manager_acc_detach(dev);
-
 		/* usb or otg */
 		dev_info(dev, "%s %d: is_host = %d, is_client = %d\n", __func__,
 				__LINE__, pdic_data->is_host, pdic_data->is_client);
@@ -3246,9 +3316,7 @@ static void s2mf301_usbpd_notify_detach(struct s2mf301_usbpd_data *pdic_data)
 		pdic_data->power_role_dual = DUAL_ROLE_PROP_PR_NONE;
 #elif IS_ENABLED(CONFIG_TYPEC)
 		pd_data->typec_power_role = TYPEC_SINK;
-		typec_set_pwr_role(pd_data->port, TYPEC_SINK);
 		pd_data->typec_data_role = TYPEC_DEVICE;
-		typec_set_data_role(pd_data->port, TYPEC_DEVICE);
 #endif
 #if IS_ENABLED(CONFIG_USB_HOST_NOTIFY)
 		send_otg_notify(o_notify, NOTIFY_EVENT_POWER_SOURCE, 0);
@@ -3411,6 +3479,7 @@ static void s2mf301_usbpd_try_snk(struct s2mf301_usbpd_data *pdic_data)
 				/* Snk detected */
 				if (duration > tTryCCDebounce * USEC_PER_MSEC) {
 					pr_info("%s, goto Attached.SRC\n", __func__);
+					fsm &= ~S2MF301_REG_PLUG_CTRL_FSM_MANUAL_INPUT_MASK;
 					fsm |= S2MF301_REG_PLUG_CTRL_FSM_ATTACHED_SRC;
 					s2mf301_usbpd_write_reg(i2c, S2MF301_REG_PLUG_CTRL_PD12, fsm);
 					s2mf301_usbpd_read_reg(i2c, S2MF301_REG_PLUG_CTRL_RpRd, &manual);
@@ -3424,8 +3493,13 @@ static void s2mf301_usbpd_try_snk(struct s2mf301_usbpd_data *pdic_data)
 				/* Snk Not Detected */
 				/* Attached.SRC -> need Detach */
 				pr_info("%s, goto Unattached.SNK\n", __func__);
-				fsm |= S2MF301_REG_PLUG_CTRL_FSM_UNATTACHED_SNK;
+
+				/* make detach in Unattached.SRC */
+				fsm &= ~S2MF301_REG_PLUG_CTRL_FSM_MANUAL_INPUT_MASK;
+				fsm |= S2MF301_REG_PLUG_CTRL_FSM_UNATTACHED_SRC;
 				s2mf301_usbpd_write_reg(i2c, S2MF301_REG_PLUG_CTRL_PD12, fsm);
+
+				/* disable manual mode */
 				s2mf301_usbpd_read_reg(i2c, S2MF301_REG_PLUG_CTRL_RpRd, &manual);
 				manual &= ~S2MF301_REG_PLUG_CTRL_FSM_MANUAL_EN;
 				s2mf301_usbpd_write_reg(i2c, S2MF301_REG_PLUG_CTRL_RpRd, manual);
@@ -3562,6 +3636,13 @@ static int s2mf301_check_port_detect(struct s2mf301_usbpd_data *pdic_data)
 
 #if defined(CONFIG_S2MF301_PDIC_TRY_SNK)
 	if ((data & S2MF301_PR_MASK) == S2MF301_PDIC_SOURCE) {
+		/* if AudioAcc Support, trans to Audio from AttachWait.Src */
+		ret = s2mf301_usbpd_check_accessory(pdic_data);
+		if (ret < 0) {
+			ret = -1;
+			goto out;
+		}
+
 		s2mf301_usbpd_try_snk(pdic_data);
 		s2mf301_usbpd_read_reg(i2c, S2MF301_REG_PLUG_MON2, &data);
 		pr_info("%s, after try.snk data = %x\n", __func__, data);
@@ -4012,6 +4093,8 @@ static void s2mf301_usbpd_init_configure(struct s2mf301_usbpd_data *_data)
 #endif
 		s2mf301_usbpd_set_pd_control(_data, USBPD_CC_ON);
 	} else {
+		s2mf301_usbpd_self_reset(_data);
+
 #if IS_ENABLED(CONFIG_BATTERY_SAMSUNG)
 		psy_muic = get_power_supply_by_name("muic-manager");
 #endif
@@ -4456,6 +4539,7 @@ static usbpd_phy_ops_type s2mf301_ops = {
 	.energy_now			= s2mf301_usbpd_energy_now,
 	.authentic				= s2mf301_usbpd_authentic,
 	.set_usbpd_reset		= s2mf301_usbpd_set_usbpd_reset,
+	.vbus_onoff			= s2mf301_usbpd_vbus_onoff,
 	.get_detach_valid		= s2mf301_usbpd_get_detach_valid,
 	.rprd_mode_change		= s2mf301_rprd_mode_change,
 	.irq_control			= s2mf301_usbpd_irq_control,

@@ -1296,19 +1296,25 @@ bool is_vender_check_sensor(struct is_core *core)
 	int i = 0;
 	bool ret = false;
 	int retry_count = 20;
+	int sensor_probe_done = 0;
 
 	do {
 		ret = false;
-		for (i = 0; i < is_vendor_sensor_count; i++) {
-			if (!test_bit(IS_SENSOR_PROBE, &core->sensor[i].state)) {
-				ret = true;
-				break;
+		sensor_probe_done = 0;
+		sensor_probe_done = 0;
+		for (i = 0; i < IS_SENSOR_COUNT; i++) {
+			if (test_bit(IS_SENSOR_PROBE, &core->sensor[i].state)) {
+				++sensor_probe_done;
 			}
 		}
 
-		if (i == is_vendor_sensor_count && ret == false) {
+		if (sensor_probe_done == IS_VENDOR_SENSOR_COUNT) {
 			info("Retry count = %d\n", retry_count);
 			break;
+		}
+		else {
+			info("sensor: not probed\n");
+			ret = true;
 		}
 
 		mdelay(100);
@@ -1823,6 +1829,10 @@ int is_vendor_get_module_from_position(int position, struct is_module_enum ** mo
 		return -EINVAL;
 	}
 
+	if (position >= SENSOR_POSITION_MAX) {
+		err("%s: invalid position value.", __func__);
+		return -EINVAL;
+	}
 
 	for (i = 0; i < IS_SENSOR_COUNT; i++) {
 		is_search_sensor_module_with_position(&core->sensor[i], position, module);

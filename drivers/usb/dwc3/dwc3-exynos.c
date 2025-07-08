@@ -1035,55 +1035,6 @@ struct kprobe_data {
 	int data3;
 };
 
-static int entry_dwc3_gadget_conndone_interrupt(struct kretprobe_instance *ri,
-				   struct pt_regs *regs)
-{
-	struct kprobe_data *data = (struct kprobe_data *)ri->data;
-	struct dwc3 *dwc = (struct dwc3 *)regs->regs[0];
-
-	data->data0 = dwc;
-
-	return 0;
-}
-
-static int ret_dwc3_gadget_conndone_interrupt(struct kretprobe_instance *ri,
-				   struct pt_regs *regs)
-{
-	struct kprobe_data *data = (struct kprobe_data *)ri->data;
-	struct dwc3 *dwc = (struct dwc3 *)data->data0;
-
-	pr_info("usb: dwc3_gadget_conndone_interrupt (%d)\n", dwc->speed);
-	switch (dwc->speed) {
-	case DWC3_DSTS_SUPERSPEED_PLUS:
-#if defined(CONFIG_USB_NOTIFY_PROC_LOG)
-		store_usblog_notify(NOTIFY_USBSTATE,
-			(void *)"USB_STATE=ENUM:CONNDONE:PSS", NULL);
-#endif
-		break;
-	case DWC3_DSTS_SUPERSPEED:
-#if defined(CONFIG_USB_NOTIFY_PROC_LOG)
-		store_usblog_notify(NOTIFY_USBSTATE,
-			(void *)"USB_STATE=ENUM:CONNDONE:SS", NULL);
-#endif
-		break;
-	case DWC3_DSTS_HIGHSPEED:
-#if defined(CONFIG_USB_NOTIFY_PROC_LOG)
-		store_usblog_notify(NOTIFY_USBSTATE,
-			(void *)"USB_STATE=ENUM:CONNDONE:HS", NULL);
-#endif
-		break;
-	case DWC3_DSTS_FULLSPEED:
-#if defined(CONFIG_USB_NOTIFY_PROC_LOG)
-		store_usblog_notify(NOTIFY_USBSTATE,
-			(void *)"USB_STATE=ENUM:CONNDONE:FS", NULL);
-#endif
-		break;
-	}
-	dwc->link_state = DWC3_LINK_STATE_U0;
-
-	return 0;
-}
-
 static int entry_dwc3_gadget_reset_interrupt(struct kretprobe_instance *ri,
 				   struct pt_regs *regs)
 {
@@ -1155,6 +1106,46 @@ static int ret_dwc3_gadget_run_stop(struct kretprobe_instance *ri,
 	return 0;
 }
 
+static int entry___dwc3_gadget_ep_enable(struct kretprobe_instance *ri,
+				   struct pt_regs *regs)
+{
+	struct dwc3_ep *dep = (struct dwc3_ep *)regs->regs[0];
+	unsigned int action = (unsigned int)regs->regs[1];
+	struct dwc3		*dwc = dep->dwc;
+
+	/* DWC3_DEPCFG_ACTION_MODIFY is only done during CONNDONE */
+	if (action == DWC3_DEPCFG_ACTION_MODIFY && dep->number == 1) {
+		pr_info("usb: dwc3_gadget_conndone_interrupt (%d)\n", dwc->speed);
+		switch (dwc->speed) {
+		case DWC3_DSTS_SUPERSPEED_PLUS:
+#if defined(CONFIG_USB_NOTIFY_PROC_LOG)
+			store_usblog_notify(NOTIFY_USBSTATE,
+				(void *)"USB_STATE=ENUM:CONNDONE:PSS", NULL);
+#endif
+			break;
+		case DWC3_DSTS_SUPERSPEED:
+#if defined(CONFIG_USB_NOTIFY_PROC_LOG)
+			store_usblog_notify(NOTIFY_USBSTATE,
+				(void *)"USB_STATE=ENUM:CONNDONE:SS", NULL);
+#endif
+			break;
+		case DWC3_DSTS_HIGHSPEED:
+#if defined(CONFIG_USB_NOTIFY_PROC_LOG)
+			store_usblog_notify(NOTIFY_USBSTATE,
+				(void *)"USB_STATE=ENUM:CONNDONE:HS", NULL);
+#endif
+			break;
+		case DWC3_DSTS_FULLSPEED:
+#if defined(CONFIG_USB_NOTIFY_PROC_LOG)
+			store_usblog_notify(NOTIFY_USBSTATE,
+				(void *)"USB_STATE=ENUM:CONNDONE:FS", NULL);
+#endif
+			break;
+		}
+	}
+	return 0;
+}
+
 #define ENTRY_RET(name) {\
 	.handler = ret_##name,\
 	.entry_handler = entry_##name,\
@@ -1172,9 +1163,9 @@ static int ret_dwc3_gadget_run_stop(struct kretprobe_instance *ri,
 
 static struct kretprobe dwc3_exynos_probes[] = {
 	ENTRY(dwc3_gadget_reset_interrupt),
-	ENTRY_RET(dwc3_gadget_conndone_interrupt),
 	ENTRY_RET(dwc3_gadget_run_stop),
 	ENTRY(dwc3_gadget_vbus_draw),
+	ENTRY(__dwc3_gadget_ep_enable),
 };
 
 static int dwc3_exyons_kretprobe_init(void)

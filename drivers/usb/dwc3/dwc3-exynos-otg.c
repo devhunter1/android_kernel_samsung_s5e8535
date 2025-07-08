@@ -51,6 +51,10 @@
 #if IS_ENABLED(CONFIG_USB_CONFIGFS_F_SS_MON_GADGET)
 #include <linux/usb/f_ss_mon_gadget.h>
 #endif
+
+#if IS_ENABLED(CONFIG_USB_NOTIFY_LAYER)
+#include <linux/usb_notify.h>
+#endif
 #define LINK_DEBUG_L		(0x0C)
 #define LINK_DEBUG_H		(0x10)
 #define BUS_ACTIVITY_CHECK	(0x3F << 16)
@@ -621,6 +625,9 @@ static int dwc3_otg_start_gadget(struct otg_fsm *fsm, int on)
 
 	dev_info(dev, "Turn %s gadget %s\n",
 			on ? "on" : "off", otg->gadget->name);
+
+	dwc->softconnect = on;
+
 #if IS_ENABLED(CONFIG_USB_CONFIGFS_F_SS_MON_GADGET)
 	vbus_session_notify(dwc->gadget, on, EAGAIN);
 #endif
@@ -851,6 +858,11 @@ dwc3_otg_store_b_sess(struct device *dev,
 	if (sscanf(buf, "%d", &b_sess_vld) != 1)
 		return -EINVAL;
 
+#if IS_ENABLED(CONFIG_USB_NOTIFY_LAYER)
+	if (is_blocked(get_otg_notify(), NOTIFY_BLOCK_TYPE_CLIENT))
+		return NOTIFY_OK;
+#endif
+
 	fsm->b_sess_vld = !!b_sess_vld;
 
 	dwc3_otg_run_sm(fsm);
@@ -881,6 +893,11 @@ dwc3_otg_store_id(struct device *dev,
 
 	if (sscanf(buf, "%d", &id) != 1)
 		return -EINVAL;
+
+#if IS_ENABLED(CONFIG_USB_NOTIFY_LAYER)
+	if (is_blocked(get_otg_notify(), NOTIFY_BLOCK_TYPE_HOST))
+		return NOTIFY_OK;
+#endif
 
 	fsm->id = !!id;
 
@@ -1039,7 +1056,7 @@ int dwc3_exynos_otg_init(struct dwc3 *dwc, struct dwc3_exynos *exynos)
 	exynos->dotg = dotg;
 	dotg->dwc = dwc;
 	dotg->exynos = exynos;
-	dev_info(dwc->dev, "%s, dotg = %8x\n", __func__, exynos->dotg);
+	dev_info(dwc->dev, "%s, dotg = %pK\n", __func__, exynos->dotg);
 
 	ret = of_property_read_u32(dwc->dev->of_node,
 				"usb-pm-qos-hsi0", &dotg->pm_qos_hsi0_val);

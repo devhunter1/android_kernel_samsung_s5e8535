@@ -1226,6 +1226,7 @@ enum aa_captureExtraInfo_mask {
 	AA_CAPTURE_EXTRA_INFO_REMOSAIC_PROCESSED_BAYER = 1 << 0,   /* bit 0       */
 	AA_CAPTURE_EXTRA_INFO_CROPPED_REMOSAIC_SEAMLESS = 1 << 1,   /* bit 1       */
 	AA_CAPTURE_EXTRA_INFO_PREVIEW_CROPPED_REMOSAIC_SEAMLESS = 1 << 2,   /* bit 2       */
+	AA_CAPTURE_EXTRA_INFO_SUB_CAM_CAPTURE = 1 << 3,            /* bit 3       */
 	AA_CAPTURE_EXTRA_INFO_CROPPED_REMOSAIC_ZOOM = 0xFF << 24,  /* bit 24 ~ 31 */
 };
 
@@ -2092,6 +2093,12 @@ enum camera_client_index {
 	CAMERA_APP_CATEGORY_TIKTOK             = 21,
 	CAMERA_APP_CATEGORY_SMART_STAY         = 22,
 	CAMERA_APP_CATEGORY_SABC               = 23,
+	CAMERA_APP_CATEGORY_SEAD               = 24,
+	CAMERA_APP_CATEGORY_POKEMONGO          = 25,
+	CAMERA_APP_CATEGORY_MEET               = 26,
+	CAMERA_APP_CATEGORY_TEAMS              = 27,
+	CAMERA_APP_CATEGORY_KAKAO              = 28,
+	CAMERA_APP_CATEGORY_VT_CALL            = 29,
 	CAMERA_APP_CATEGORY_MAX
 };
 

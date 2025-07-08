@@ -229,6 +229,8 @@ struct s2mf301_pmeter_data {
 	int irq_rid_detach;
 	int irq_ichgin_th;
 
+	int water_adc_mode;
+
 	struct power_supply	*psy_pm;
 	struct power_supply_desc psy_pm_desc;
 
@@ -241,6 +243,7 @@ struct s2mf301_pmeter_data {
 };
 
 #if IS_ENABLED(CONFIG_S2MF301_TYPEC_WATER)
-void *s2mf301_pm_water_init(struct s2mf301_water_data *water);
+extern void *s2mf301_pm_water_init(struct s2mf301_water_data *water);
+extern void s2mf301_pm_water_irq_init(struct s2mf301_water_data *water);
 #endif
 #endif /*S2MF301_PMETER_H*/

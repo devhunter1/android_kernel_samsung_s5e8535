@@ -76,4 +76,10 @@ config CAMERA_MMW_E14X
         default n
         help
          This camera is mmw_v14x
+config CAMERA_AAX_A16X
+        bool "This camera is aax_v16x"
+        depends on CAMERA_VENDER_MCD_V2
+        default n
+        help
+         This camera is aax_v16x
 

@@ -1994,9 +1994,28 @@ extern "C" {
 #define MLME_SET_NUM_TX_ANTENNAS_REQ          0x2062
 #define MLME_SET_ELNA_BYPASS_REQ              0x2063
 #define MLME_SET_MAX_TX_POWER_REQ             0x2064
-#define MLME_SPARE_SIGNAL_1_REQ               0x2065
-#define MLME_SPARE_SIGNAL_2_REQ               0x2066
-#define MLME_SPARE_SIGNAL_3_REQ               0x2067
+#define MLME_SET_UWBCX_REQ                    0x2065
+#define MLME_GET_ELNA_BYPASS_REQ              0x2066
+#define MLME_SET_SCAN_TIMINGS_REQ             0x2067
+#define MLME_SET_LOW_LATENCY_MODE_REQ         0x2068
+#define MLME_SAR_REQ                          0x2069
+#define MLME_NAN_BOOTSTRAPPING_REQUEST_REQ    0x206a
+#define MLME_NAN_BOOTSTRAPPING_RESPONSE_REQ   0x206b
+#define MLME_NAN_COMMAND_REQ                  0x206c
+#define MLME_NAN_PAIRING_REQUEST_REQ          0x206d
+#define MLME_NAN_PAIRING_RESPONSE_REQ         0x206e
+#define MLME_NAN_PAIRING_END_REQ              0x206f
+#define MLME_MLO_GET_LINK_STATE_REQ           0x2070
+#define MLME_MLO_SET_LINK_STATE_REQ           0x2071
+#define MLME_MLO_GET_TTLM_REQ                 0x2072
+#define MLME_MLO_SET_TTLM_REQ                 0x2073
+#define MLME_MLO_LINK_MEASUREMENT_REQ         0x2074
+#define MLME_SAR_SET_INDEX_REQ                0x2075
+#define MLME_SAR_GET_AVG_TX_POWER_REQ         0x2076
+#define MLME_SAR_GET_TX_POWER_LIMITS_REQ      0x2077
+#define MLME_SPARE_SIGNAL_1_REQ               0x2078
+#define MLME_SPARE_SIGNAL_2_REQ               0x2079
+#define MLME_SPARE_SIGNAL_3_REQ               0x207a
 #define MLME_GET_CFM                          0x2101
 #define MLME_SET_CFM                          0x2102
 #define MLME_POWERMGT_CFM                     0x2103
@@ -2087,9 +2106,28 @@ extern "C" {
 #define MLME_SET_NUM_TX_ANTENNAS_CFM          0x2162
 #define MLME_SET_ELNA_BYPASS_CFM              0x2163
 #define MLME_SET_MAX_TX_POWER_CFM             0x2164
-#define MLME_SPARE_SIGNAL_1_CFM               0x2165
-#define MLME_SPARE_SIGNAL_2_CFM               0x2166
-#define MLME_SPARE_SIGNAL_3_CFM               0x2167
+#define MLME_SET_UWBCX_CFM                    0x2165
+#define MLME_GET_ELNA_BYPASS_CFM              0x2166
+#define MLME_SET_SCAN_TIMINGS_CFM             0x2167
+#define MLME_SET_LOW_LATENCY_MODE_CFM         0x2168
+#define MLME_SAR_CFM                          0x2169
+#define MLME_NAN_BOOTSTRAPPING_REQUEST_CFM    0x216a
+#define MLME_NAN_BOOTSTRAPPING_RESPONSE_CFM   0x216b
+#define MLME_NAN_COMMAND_CFM                  0x216c
+#define MLME_NAN_PAIRING_REQUEST_CFM          0x216d
+#define MLME_NAN_PAIRING_RESPONSE_CFM         0x216e
+#define MLME_NAN_PAIRING_END_CFM              0x216f
+#define MLME_MLO_GET_LINK_STATE_CFM           0x2170
+#define MLME_MLO_SET_LINK_STATE_CFM           0x2171
+#define MLME_MLO_GET_TTLM_CFM                 0x2172
+#define MLME_MLO_SET_TTLM_CFM                 0x2173
+#define MLME_MLO_LINK_MEASUREMENT_CFM         0x2174
+#define MLME_SAR_SET_INDEX_CFM                0x2175
+#define MLME_SAR_GET_AVG_TX_POWER_CFM         0x2176
+#define MLME_SAR_GET_TX_POWER_LIMITS_CFM      0x2177
+#define MLME_SPARE_SIGNAL_1_CFM               0x2178
+#define MLME_SPARE_SIGNAL_2_CFM               0x2179
+#define MLME_SPARE_SIGNAL_3_CFM               0x217a
 #define MLME_CONNECT_RES                      0x2200
 #define MLME_CONNECTED_RES                    0x2201
 #define MLME_REASSOCIATE_RES                  0x2202
@@ -2147,9 +2185,23 @@ extern "C" {
 #define MLME_BLOCKACK_ACTION_IND              0x232f
 #define MLME_SCHEDULED_PM_TEARDOWN_IND        0x2330
 #define MLME_SCHEDULED_PM_LEAKY_AP_DETECT_IND 0x2331
-#define MLME_SPARE_SIGNAL_1_IND               0x2332
-#define MLME_SPARE_SIGNAL_2_IND               0x2333
-#define MLME_SPARE_SIGNAL_3_IND               0x2334
+#define MLME_DELAYED_WAKEUP_IND               0x2332
+#define MLME_SAR_IND                          0x2333
+#define MLME_SAR_LIMIT_UPPER_IND              0x2336
+#define MLME_SET_BSS_MAX_CHANNEL_WIDTH_IND    0x2338
+#define MLME_SPATIAL_REUSE_PARAMETERS_IND     0x2339
+#define MLME_NAN_COMMAND_IND                  0x233a
+#define MLME_MLO_LINK_INFO_IND                0x233b
+#define MLME_NAN_PAIRING_REQUEST_IND          0x233c
+#define MLME_NAN_PAIRING_RESPONSE_IND         0x233d
+#define MLME_NAN_PAIRING_REQUESTED_IND        0x233e
+#define MLME_NAN_PAIRING_CONFIRM_IND          0x233f
+#define MLME_MLO_SET_TTLM_IND                 0x2340
+#define MLME_MLO_LINK_MEASUREMENT_IND         0x2341
+#define MLME_SAR_TARGET_IND                   0x2342
+#define MLME_SPARE_SIGNAL_1_IND               0x2343
+#define MLME_SPARE_SIGNAL_2_IND               0x2344
+#define MLME_SPARE_SIGNAL_3_IND               0x2345
 #define DEBUG_SPARE_1_REQ                     0x8000
 #define DEBUG_SPARE_2_REQ                     0x8001
 #define DEBUG_SPARE_3_REQ                     0x8002
@@ -3300,6 +3352,186 @@ struct fapi_signal {
 		} __packed mlme_set_max_tx_power_req;
 		struct {
 			__le16 vif;
+			__le16 uwbcx_enabled;
+			u8     startch6g;
+			u8     endch6g;
+			u8     startch5g;
+			u8     endch5g;
+			u8     prepare_time;
+			__le32 spare_1;
+			__le32 spare_2;
+			__le32 spare_3;
+			u8     dr[0];
+		} __packed mlme_set_uwbcx_req;
+		struct {
+			__le16 vif;
+			__le32 spare_1;
+			__le32 spare_2;
+			__le32 spare_3;
+			u8     dr[0];
+		} __packed mlme_get_elna_bypass_req;
+		struct {
+			__le16 vif;
+			__le16 max_channel_active_time;
+			__le16 away_time;
+			__le16 home_time;
+			__le16 max_channel_passive_time;
+			__le32 spare_1;
+			__le32 spare_2;
+			__le32 spare_3;
+			u8     dr[0];
+		} __packed mlme_set_scan_timings_req;
+		struct {
+			__le16 vif;
+			__le16 low_latency_mode;
+			__le16 power_save_configuration;
+			__le16 soft_roaming_scans_allowed;
+			__le32 spare_1;
+			__le32 spare_2;
+			__le32 spare_3;
+			u8     dr[0];
+		} __packed mlme_set_low_latency_mode_req;
+		struct {
+			__le16 vif;
+			__le16 short_window_number;
+			__le16 flags;
+			__le16 sar_limit;
+			__le32 spare_1;
+			__le32 spare_2;
+			__le32 spare_3;
+			u8     dr[0];
+		} __packed mlme_sar_req;
+		struct {
+			__le16 vif;
+			u8     peer_nmi_address[ETH_ALEN];
+			__le16 match_id;
+			__le16 bootstrapping_instance_id;
+			__le16 bootstrapping_method;
+			__le32 spare_1;
+			__le32 spare_2;
+			__le32 spare_3;
+			u8     dr[0];
+		} __packed mlme_nan_bootstrapping_request_req;
+		struct {
+			__le16 vif;
+			u8     peer_nmi_address[ETH_ALEN];
+			__le16 match_id;
+			u8     response;
+			__le16 bootstrapping_instance_id;
+			__le32 spare_1;
+			__le32 spare_2;
+			__le32 spare_3;
+			u8     dr[0];
+		} __packed mlme_nan_bootstrapping_response_req;
+		struct {
+			__le16 vif;
+			__le16 transaction_id;
+			__le32 spare_1;
+			__le32 spare_2;
+			__le32 spare_3;
+			u8     dr[0];
+		} __packed mlme_nan_command_req;
+		struct {
+			__le16 vif;
+			u8     peer_nmi_address[ETH_ALEN];
+			__le16 session_id;
+			u8     request_type;
+			u8     cipher_type;
+			__le16 enable_caching;
+			__le32 spare_1;
+			__le32 spare_2;
+			__le32 spare_3;
+			u8     dr[0];
+		} __packed mlme_nan_pairing_request_req;
+		struct {
+			__le16 vif;
+			u8     peer_nmi_address[ETH_ALEN];
+			__le16 session_id;
+			u8     request_type;
+			u8     response;
+			u8     cipher_type;
+			__le16 enable_caching;
+			__le32 spare_1;
+			__le32 spare_2;
+			__le32 spare_3;
+			u8     dr[0];
+		} __packed mlme_nan_pairing_response_req;
+		struct {
+			__le16 vif;
+			u8     peer_nmi_address[ETH_ALEN];
+			__le16 session_id;
+			__le32 spare_1;
+			__le32 spare_2;
+			__le32 spare_3;
+			u8     dr[0];
+		} __packed mlme_nan_pairing_end_req;
+		struct {
+			__le16 vif;
+			__le32 spare_1;
+			__le32 spare_2;
+			__le32 spare_3;
+			u8     dr[0];
+		} __packed mlme_mlo_get_link_state_req;
+		struct {
+			__le16 vif;
+			u8     control_mode;
+			u8     number_of_active_links;
+			__le16 active_links_bitmap;
+			__le32 spare_1;
+			__le32 spare_2;
+			__le32 spare_3;
+			u8     dr[0];
+		} __packed mlme_mlo_set_link_state_req;
+		struct {
+			__le16 vif;
+			__le32 spare_1;
+			__le32 spare_2;
+			__le32 spare_3;
+			u8     dr[0];
+		} __packed mlme_mlo_get_ttlm_req;
+		struct {
+			__le16 vif;
+			__le16 default_ttlm;
+			__le32 spare_1;
+			__le32 spare_2;
+			__le32 spare_3;
+			u8     dr[0];
+		} __packed mlme_mlo_set_ttlm_req;
+		struct {
+			__le16 vif;
+			__le32 spare_1;
+			__le32 spare_2;
+			__le32 spare_3;
+			u8     dr[0];
+		} __packed mlme_mlo_link_measurement_req;
+		struct {
+			__le16 vif;
+			u8     dsi_id;
+			__le32 spare_1;
+			__le32 spare_2;
+			__le32 spare_3;
+			u8     dr[0];
+		} __packed mlme_sar_set_index_req;
+		struct {
+			__le16 vif;
+			u8     dsi_id;
+			u8     report_mode;
+			__le32 spare_1;
+			__le32 spare_2;
+			__le32 spare_3;
+			u8     dr[0];
+		} __packed mlme_sar_get_avg_tx_power_req;
+		struct {
+			__le16 vif;
+			__le16 regulatory_domain;
+			u8     dsi_id;
+			__le32 spare_1;
+			__le32 spare_2;
+			__le32 spare_3;
+			u8     dr[0];
+		} __packed mlme_sar_get_tx_power_limits_req;
+		struct {
+			__le16 vif;
 			__le32 spare_1;
 			__le32 spare_2;
 			__le32 spare_3;
@@ -4145,6 +4377,208 @@ struct fapi_signal {
 		struct {
 			__le16 vif;
 			__le16 result_code;
+			__le32 timestamp;
+			__le32 spare_1;
+			__le32 spare_2;
+			__le32 spare_3;
+			u8     dr[0];
+		} __packed mlme_set_uwbcx_cfm;
+		struct {
+			__le16 vif;
+			__le16 result_code;
+			__le16 elna_setting;
+			__le32 timestamp;
+			__le32 spare_1;
+			__le32 spare_2;
+			__le32 spare_3;
+			u8     dr[0];
+		} __packed mlme_get_elna_bypass_cfm;
+		struct {
+			__le16 vif;
+			__le16 result_code;
+			__le32 timestamp;
+			__le32 spare_1;
+			__le32 spare_2;
+			__le32 spare_3;
+			u8     dr[0];
+		} __packed mlme_set_scan_timings_cfm;
+		struct {
+			__le16 vif;
+			__le16 result_code;
+			__le32 timestamp;
+			__le32 spare_1;
+			__le32 spare_2;
+			__le32 spare_3;
+			u8     dr[0];
+		} __packed mlme_set_low_latency_mode_cfm;
+		struct {
+			__le16 vif;
+			__le16 result_code;
+			__le32 timestamp;
+			__le32 spare_1;
+			__le32 spare_2;
+			__le32 spare_3;
+			u8     dr[0];
+		} __packed mlme_sar_cfm;
+		struct {
+			__le16 vif;
+			__le16 result_code;
+			__le16 bootstrapping_instance_id;
+			__le32 timestamp;
+			__le32 spare_1;
+			__le32 spare_2;
+			__le32 spare_3;
+			u8     dr[0];
+		} __packed mlme_nan_bootstrapping_request_cfm;
+		struct {
+			__le16 vif;
+			__le16 result_code;
+			__le16 bootstrapping_instance_id;
+			__le32 timestamp;
+			__le32 spare_1;
+			__le32 spare_2;
+			__le32 spare_3;
+			u8     dr[0];
+		} __packed mlme_nan_bootstrapping_response_cfm;
+		struct {
+			__le16 vif;
+			__le16 transaction_id;
+			__le16 result_code;
+			__le32 timestamp;
+			__le32 spare_1;
+			__le32 spare_2;
+			__le32 spare_3;
+			u8     dr[0];
+		} __packed mlme_nan_command_cfm;
+		struct {
+			__le16 vif;
+			__le16 result_code;
+			u8     peer_nmi_address[ETH_ALEN];
+			__le16 session_id;
+			__le16 publish_id;
+			__le16 dialog_token;
+			__le16 bootstrapping_method;
+			__le32 timestamp;
+			__le32 spare_1;
+			__le32 spare_2;
+			__le32 spare_3;
+			u8     dr[0];
+		} __packed mlme_nan_pairing_request_cfm;
+		struct {
+			__le16 vif;
+			__le16 result_code;
+			u8     peer_nmi_address[ETH_ALEN];
+			__le16 session_id;
+			__le16 publish_id;
+			__le16 dialog_token;
+			__le16 bootstrapping_method;
+			__le32 timestamp;
+			__le32 spare_1;
+			__le32 spare_2;
+			__le32 spare_3;
+			u8     dr[0];
+		} __packed mlme_nan_pairing_response_cfm;
+		struct {
+			__le16 vif;
+			__le16 result_code;
+			u8     peer_nmi_address[ETH_ALEN];
+			__le16 session_id;
+			__le32 timestamp;
+			__le32 spare_1;
+			__le32 spare_2;
+			__le32 spare_3;
+			u8     dr[0];
+		} __packed mlme_nan_pairing_end_cfm;
+		struct {
+			__le16 vif;
+			__le16 result_code;
+			u8     control_mode;
+			__le32 timestamp;
+			__le32 spare_1;
+			__le32 spare_2;
+			__le32 spare_3;
+			u8     dr[0];
+		} __packed mlme_mlo_get_link_state_cfm;
+		struct {
+			__le16 vif;
+			__le16 result_code;
+			__le32 timestamp;
+			__le32 spare_1;
+			__le32 spare_2;
+			__le32 spare_3;
+			u8     dr[0];
+		} __packed mlme_mlo_set_link_state_cfm;
+		struct {
+			__le16 vif;
+			__le16 result_code;
+			__le16 default_ttlm;
+			__le32 timestamp;
+			__le32 spare_1;
+			__le32 spare_2;
+			__le32 spare_3;
+			u8     dr[0];
+		} __packed mlme_mlo_get_ttlm_cfm;
+		struct {
+			__le16 vif;
+			__le16 result_code;
+			__le16 default_ttlm;
+			__le32 timestamp;
+			__le32 spare_1;
+			__le32 spare_2;
+			__le32 spare_3;
+			u8     dr[0];
+		} __packed mlme_mlo_set_ttlm_cfm;
+		struct {
+			__le16 vif;
+			__le16 result_code;
+			__le32 timestamp;
+			__le32 spare_1;
+			__le32 spare_2;
+			__le32 spare_3;
+			u8     dr[0];
+		} __packed mlme_mlo_link_measurement_cfm;
+		struct {
+			__le16 vif;
+			__le16 result_code;
+			__le32 timestamp;
+			__le32 spare_1;
+			__le32 spare_2;
+			__le32 spare_3;
+			u8     dr[0];
+		} __packed mlme_sar_set_index_cfm;
+		struct {
+			__le16 vif;
+			__le16 result_code;
+			u8     power_state_antenna1;
+			u8     power_state_antenna2;
+			__le16 tas_long_window;
+			__le32 timestamp;
+			__le32 spare_1;
+			__le32 spare_2;
+			__le32 spare_3;
+			u8     dr[0];
+		} __packed mlme_sar_get_avg_tx_power_cfm;
+		struct {
+			__le16 vif;
+			__le16 result_code;
+			u8     antenna12g4power_limit;
+			u8     antenna22g4power_limit;
+			u8     antenna1and22g4power_limit;
+			u8     antenna15g_power_limit;
+			u8     antenna25g_power_limit;
+			u8     antenna1and25g_power_limit;
+			u8     antenna16g_power_limit;
+			u8     antenna26g_power_limit;
+			u8     antenna1and26g_power_limit;
+			__le32 timestamp;
+			__le32 spare_1;
+			__le32 spare_2;
+			__le32 spare_3;
+			u8     dr[0];
+		} __packed mlme_sar_get_tx_power_limits_cfm;
+		struct {
+			__le16 vif;
+			__le16 result_code;
 			__le32 spare_1;
 			__le32 spare_2;
 			__le32 spare_3;
@@ -4696,6 +5130,147 @@ struct fapi_signal {
 			__le32 spare_3;
 			u8     dr[0];
 		} __packed mlme_scheduled_pm_leaky_ap_detect_ind;
+		struct {
+			__le16 vif;
+			u8     wakeup_reason;
+			u8     number_of_inds;
+			__le32 timestamp;
+			__le32 spare_1;
+			__le32 spare_2;
+			__le32 spare_3;
+			u8     dr[0];
+		} __packed mlme_delayed_wakeup_ind;
+		struct {
+			__le16 vif;
+			__le16 short_window_number;
+			__le16 sar;
+			__le32 timestamp;
+			__le32 spare_1;
+			__le32 spare_2;
+			__le32 spare_3;
+			u8     dr[0];
+		} __packed mlme_sar_ind;
+		struct {
+			__le16 vif;
+			__le16 sar_limit_upper;
+			__le32 spare_1;
+			__le32 spare_2;
+			__le32 spare_3;
+			u8     dr[0];
+		} __packed mlme_sar_limit_upper_ind;
+		struct {
+			__le16 vif;
+			__le16 result_code;
+			__le32 timestamp;
+			__le32 spare_1;
+			__le32 spare_2;
+			__le32 spare_3;
+			u8     dr[0];
+		} __packed mlme_set_bss_max_channel_width_ind;
+		struct {
+			__le16 vif;
+			u8     psr_allowed;
+			u8     non_srg_obss_pd_sr_allowed;
+			u8     non_srg_offset_present;
+			u8     srg_information_present;
+			u8     hesiga_spatial_reuse_value15allowed;
+			u8     non_srg_obss_pd_max_offset;
+			u8     srg_obss_pd_min_offset;
+			u8     srg_obss_pd_max_offset;
+			u8     srg_bss_color_bitmap[8];
+			u8     srg_partial_bssid_bitmap[8];
+			__le32 timestamp;
+			__le32 spare_1;
+			__le32 spare_2;
+			__le32 spare_3;
+			u8     dr[0];
+		} __packed mlme_spatial_reuse_parameters_ind;
+		struct {
+			__le16 vif;
+			__le32 timestamp;
+			__le32 spare_1;
+			__le32 spare_2;
+			__le32 spare_3;
+			u8     dr[0];
+		} __packed mlme_nan_command_ind;
+		struct {
+			__le16 vif;
+			u8     reason;
+			__le32 timestamp;
+			__le32 spare_1;
+			__le32 spare_2;
+			__le32 spare_3;
+			u8     dr[0];
+		} __packed mlme_mlo_link_info_ind;
+		struct {
+			__le16 vif;
+			u8     peer_nmi_address[ETH_ALEN];
+			__le16 session_id;
+			__le32 timestamp;
+			__le32 spare_1;
+			__le32 spare_2;
+			__le32 spare_3;
+			u8     dr[0];
+		} __packed mlme_nan_pairing_request_ind;
+		struct {
+			__le16 vif;
+			u8     peer_nmi_address[ETH_ALEN];
+			__le16 session_id;
+			__le32 timestamp;
+			__le32 spare_1;
+			__le32 spare_2;
+			__le32 spare_3;
+			u8     dr[0];
+		} __packed mlme_nan_pairing_response_ind;
+		struct {
+			__le16 vif;
+			u8     peer_nmi_address[ETH_ALEN];
+			__le16 match_id;
+			__le16 session_id;
+			u8     request_type;
+			__le32 timestamp;
+			__le32 spare_1;
+			__le32 spare_2;
+			__le32 spare_3;
+			u8     dr[0];
+		} __packed mlme_nan_pairing_requested_ind;
+		struct {
+			__le16 vif;
+			u8     peer_nmi_address[ETH_ALEN];
+			__le16 session_id;
+			u8     response;
+			__le32 timestamp;
+			__le32 spare_1;
+			__le32 spare_2;
+			__le32 spare_3;
+			u8     dr[0];
+		} __packed mlme_nan_pairing_confirm_ind;
+		struct {
+			__le16 vif;
+			__le16 result_code;
+			__le16 default_ttlm;
+			__le32 timestamp;
+			__le32 spare_1;
+			__le32 spare_2;
+			__le32 spare_3;
+			u8     dr[0];
+		} __packed mlme_mlo_set_ttlm_ind;
+		struct {
+			__le16 vif;
+			__le32 timestamp;
+			__le32 spare_1;
+			__le32 spare_2;
+			__le32 spare_3;
+			u8     dr[0];
+		} __packed mlme_mlo_link_measurement_ind;
+		struct {
+			__le16 vif;
+			__le16 sar_target;
+			__le32 spare_1;
+			__le32 spare_2;
+			__le32 spare_3;
+			u8     dr[0];
+		} __packed mlme_sar_target_ind;
 		struct {
 			__le16 vif;
 			__le32 spare_1;
@@ -5847,6 +6422,25 @@ static inline u16 fapi_get_expected_size(struct sk_buff *skb)
 		fapi_sig_size(mlme_set_num_tx_antennas_req),
 		fapi_sig_size(mlme_set_elna_bypass_req),
 		fapi_sig_size(mlme_set_max_tx_power_req),
+		fapi_sig_size(mlme_set_uwbcx_req),
+		fapi_sig_size(mlme_get_elna_bypass_req),
+		fapi_sig_size(mlme_set_scan_timings_req),
+		fapi_sig_size(mlme_set_low_latency_mode_req),
+		fapi_sig_size(mlme_sar_req),
+		fapi_sig_size(mlme_nan_bootstrapping_request_req),
+		fapi_sig_size(mlme_nan_bootstrapping_response_req),
+		fapi_sig_size(mlme_nan_command_req),
+		fapi_sig_size(mlme_nan_pairing_request_req),
+		fapi_sig_size(mlme_nan_pairing_response_req),
+		fapi_sig_size(mlme_nan_pairing_end_req),
+		fapi_sig_size(mlme_mlo_get_link_state_req),
+		fapi_sig_size(mlme_mlo_set_link_state_req),
+		fapi_sig_size(mlme_mlo_get_ttlm_req),
+		fapi_sig_size(mlme_mlo_set_ttlm_req),
+		fapi_sig_size(mlme_mlo_link_measurement_req),
+		fapi_sig_size(mlme_sar_set_index_req),
+		fapi_sig_size(mlme_sar_get_avg_tx_power_req),
+		fapi_sig_size(mlme_sar_get_tx_power_limits_req),
 		fapi_sig_size(mlme_spare_signal_1_req),
 		fapi_sig_size(mlme_spare_signal_2_req),
 		fapi_sig_size(mlme_spare_signal_3_req),
@@ -6005,6 +6599,25 @@ static inline u16 fapi_get_expected_size(struct sk_buff *skb)
 		fapi_sig_size(mlme_set_num_tx_antennas_cfm),
 		fapi_sig_size(mlme_set_elna_bypass_cfm),
 		fapi_sig_size(mlme_set_max_tx_power_cfm),
+		fapi_sig_size(mlme_set_uwbcx_cfm),
+		fapi_sig_size(mlme_get_elna_bypass_cfm),
+		fapi_sig_size(mlme_set_scan_timings_cfm),
+		fapi_sig_size(mlme_set_low_latency_mode_cfm),
+		fapi_sig_size(mlme_sar_cfm),
+		fapi_sig_size(mlme_nan_bootstrapping_request_cfm),
+		fapi_sig_size(mlme_nan_bootstrapping_response_cfm),
+		fapi_sig_size(mlme_nan_command_cfm),
+		fapi_sig_size(mlme_nan_pairing_request_cfm),
+		fapi_sig_size(mlme_nan_pairing_response_cfm),
+		fapi_sig_size(mlme_nan_pairing_end_cfm),
+		fapi_sig_size(mlme_mlo_get_link_state_cfm),
+		fapi_sig_size(mlme_mlo_set_link_state_cfm),
+		fapi_sig_size(mlme_mlo_get_ttlm_cfm),
+		fapi_sig_size(mlme_mlo_set_ttlm_cfm),
+		fapi_sig_size(mlme_mlo_link_measurement_cfm),
+		fapi_sig_size(mlme_sar_set_index_cfm),
+		fapi_sig_size(mlme_sar_get_avg_tx_power_cfm),
+		fapi_sig_size(mlme_sar_get_tx_power_limits_cfm),
 		fapi_sig_size(mlme_spare_signal_1_cfm),
 		fapi_sig_size(mlme_spare_signal_2_cfm),
 		fapi_sig_size(mlme_spare_signal_3_cfm),
@@ -6115,6 +6728,23 @@ static inline u16 fapi_get_expected_size(struct sk_buff *skb)
 		fapi_sig_size(mlme_blockack_action_ind),
 		fapi_sig_size(mlme_scheduled_pm_teardown_ind),
 		fapi_sig_size(mlme_scheduled_pm_leaky_ap_detect_ind),
+		fapi_sig_size(mlme_delayed_wakeup_ind),
+		fapi_sig_size(mlme_sar_ind),
+		0,
+		0,
+		fapi_sig_size(mlme_sar_limit_upper_ind),
+		0,
+		fapi_sig_size(mlme_set_bss_max_channel_width_ind),
+		fapi_sig_size(mlme_spatial_reuse_parameters_ind),
+		fapi_sig_size(mlme_nan_command_ind),
+		fapi_sig_size(mlme_mlo_link_info_ind),
+		fapi_sig_size(mlme_nan_pairing_request_ind),
+		fapi_sig_size(mlme_nan_pairing_response_ind),
+		fapi_sig_size(mlme_nan_pairing_requested_ind),
+		fapi_sig_size(mlme_nan_pairing_confirm_ind),
+		fapi_sig_size(mlme_mlo_set_ttlm_ind),
+		fapi_sig_size(mlme_mlo_link_measurement_ind),
+		fapi_sig_size(mlme_sar_target_ind),
 		fapi_sig_size(mlme_spare_signal_1_ind),
 		fapi_sig_size(mlme_spare_signal_2_ind),
 		fapi_sig_size(mlme_spare_signal_3_ind),

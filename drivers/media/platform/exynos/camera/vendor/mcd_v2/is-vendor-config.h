@@ -30,6 +30,8 @@
 #include "aaw_v14x/is-vendor-config_aaw_v14x.h"
 #elif defined(CONFIG_CAMERA_MMW_E14X)
 #include "aaw_v14x/is-vendor-config_mmw_v14x.h"
+#elif defined(CONFIG_CAMERA_AAX_A16X)
+#include "aax_v16x/is-vendor-config_aax_v16x.h"
 #else
 #include "aaw_v14x/is-vendor-config_aaw_v14x.h"
 #endif

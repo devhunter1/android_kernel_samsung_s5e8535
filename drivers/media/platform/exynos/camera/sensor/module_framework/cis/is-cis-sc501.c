@@ -56,14 +56,6 @@
 
 static const struct v4l2_subdev_ops subdev_ops;
 
-#if defined(CONFIG_VENDER_MCD_V2)
-#include "is-sec-define.h"
-extern const struct is_vender_rom_addr *vender_rom_addr[SENSOR_POSITION_MAX];
-#ifdef SUPPORT_SENSOR_DUALIZATION
-extern const struct is_vender_rom_addr *vender_rom_addr_dualized[SENSOR_POSITION_MAX];
-#endif
-#endif
-
 static const u32 *sensor_sc501_global;
 static u32 sensor_sc501_global_size;
 static const u32 **sensor_sc501_setfiles;
@@ -75,6 +67,9 @@ static u32 sensor_sc501_fsync_master_size;
 static const u32 *sensor_sc501_fsync_slave;
 static u32 sensor_sc501_fsync_slave_size;
 static int check_uninit_value = 0;
+
+/* For checking frame count */
+static u32 sensor_SC501_fcount;
 
 static bool sensor_sc501_check_master_stream_off(struct is_core *core)
 {
@@ -208,6 +203,7 @@ int sensor_sc501_cis_init(struct v4l2_subdev *subdev)
 	struct is_cis *cis;
 	u32 setfile_index = 0;
 	cis_setting_info setinfo;
+	ktime_t st = ktime_get();
 
 #if USE_OTP_AWB_CAL_DATA
 	struct i2c_client *client = NULL;
@@ -264,10 +260,8 @@ int sensor_sc501_cis_init(struct v4l2_subdev *subdev)
 	CALL_CISOPS(cis, cis_get_max_digital_gain, subdev, &setinfo.return_value);
 	dbg_sensor(2, "[%s] max dgain : %d\n", __func__, setinfo.return_value);
 
-#ifdef DEBUG_SENSOR_TIME
-	do_gettimeofday(&end);
-	dbg_sensor(2, "[%s] time %lu us\n", __func__, (end.tv_sec - st.tv_sec)*1000000 + (end.tv_usec - st.tv_usec));
-#endif
+	if (IS_ENABLED(DEBUG_SENSOR_TIME))
+		dbg_sensor(1, "[%s] time %ldus\n", __func__, PABLO_KTIME_US_DELTA_NOW(st));
 
 p_err:
 	return ret;
@@ -340,12 +334,15 @@ int sensor_sc501_cis_mode_change(struct v4l2_subdev *subdev, u32 mode)
 {
 	int ret = 0;
 	struct is_cis *cis = NULL;
+	struct i2c_client *client = NULL;
 
 	FIMC_BUG(!subdev);
 
 	cis = (struct is_cis *)v4l2_get_subdevdata(subdev);
 	FIMC_BUG(!cis);
 	FIMC_BUG(!cis->cis_data);
+
+	client = cis->client;
 
 	if (mode > sensor_sc501_max_setfile_num) {
 		err("invalid mode(%d)!!", mode);
@@ -355,11 +352,18 @@ int sensor_sc501_cis_mode_change(struct v4l2_subdev *subdev, u32 mode)
 
 	sensor_sc501_cis_data_calculation(sensor_sc501_pllinfos[mode], cis->cis_data);
 
-	I2C_MUTEX_LOCK(cis->i2c_lock);
 	info("[%s] sensor mode(%d)\n", __func__, mode);
+	I2C_MUTEX_LOCK(cis->i2c_lock);
 	ret = sensor_cis_set_registers(subdev, sensor_sc501_setfiles[mode], sensor_sc501_setfile_sizes[mode]);
 	if (ret < 0) {
 		err("sensor_sc501_set_registers fail!!");
+		goto p_i2c_err;
+	}
+
+	ret = cis->ixc_ops->write8(client, 0x3221, 0x66);
+	cis->bayer_order = OTF_INPUT_ORDER_BAYER_BG_GR;
+		if (ret < 0) {
+		err("sensor_sc501 flip fail!!");
 		goto p_i2c_err;
 	}
 
@@ -385,10 +389,8 @@ int sensor_sc501_cis_set_size(struct v4l2_subdev *subdev, cis_shared_data *cis_d
 	u32 ratio_w = 0, ratio_h = 0, start_x = 0, start_y = 0, end_x = 0, end_y = 0;
 	struct i2c_client *client = NULL;
 	struct is_cis *cis = NULL;
-#ifdef DEBUG_SENSOR_TIME
-	struct timeval st, end;
-	do_gettimeofday(&st);
-#endif
+	ktime_t st = ktime_get();
+
 	FIMC_BUG(!subdev);
 
 	cis = (struct is_cis *)v4l2_get_subdevdata(subdev);
@@ -449,10 +451,8 @@ int sensor_sc501_cis_set_size(struct v4l2_subdev *subdev, cis_shared_data *cis_d
 		goto p_err;
 	}
 
-#ifdef DEBUG_SENSOR_TIME
-	do_gettimeofday(&end);
-	dbg_sensor(2, "[%s] time %lu us\n", __func__, (end.tv_sec - st.tv_sec) * 1000000 + (end.tv_usec - st.tv_usec));
-#endif
+	if (IS_ENABLED(DEBUG_SENSOR_TIME))
+		dbg_sensor(1, "[%s] time %ldus\n", __func__, PABLO_KTIME_US_DELTA_NOW(st));
 
 p_err:
 	return ret;
@@ -467,11 +467,7 @@ int sensor_sc501_cis_stream_on(struct v4l2_subdev *subdev)
 	cis_shared_data *cis_data = NULL;
 	struct is_device_sensor *this_device = NULL;
 	bool single_mode = true; /* default single */
-
-#ifdef DEBUG_SENSOR_TIME
-	struct timeval st, end;
-	do_gettimeofday(&st);
-#endif
+	ktime_t st = ktime_get();
 
 	FIMC_BUG(!subdev);
 
@@ -507,24 +503,27 @@ int sensor_sc501_cis_stream_on(struct v4l2_subdev *subdev)
 
 	dbg_sensor(2, "[MOD:D:%d] %s\n", cis->id, __func__);
 
-	I2C_MUTEX_LOCK(cis->i2c_lock);
-
 	/* Sensor Dual sync on/off */
 	if (single_mode) {
 		/* Delay for single mode */
-		msleep(50);
+		msleep(5);
 	} else {
 		info("[%s] dual sync slave mode\n", __func__);
+		I2C_MUTEX_LOCK(cis->i2c_lock);
 		ret = sensor_cis_set_registers(subdev, sensor_sc501_fsync_slave, sensor_sc501_fsync_slave_size);
-		if (ret < 0)
+		I2C_MUTEX_UNLOCK(cis->i2c_lock);
+		if (ret < 0) {
 			err("[%s] sensor_sc501_fsync_slave fail\n", __func__);
+		}
 
 		/* The delay which can change the frame-length of first frame was removed here*/
 	}
 
 	/* Sensor stream on */
 	info("%s (single_mode : %d)\n", __func__, single_mode);
+	I2C_MUTEX_LOCK(cis->i2c_lock);
 	ret = cis->ixc_ops->write8(client, 0x0100, 0x01);
+	I2C_MUTEX_UNLOCK(cis->i2c_lock);
 	if (ret < 0) {
 		err("i2c transfer fail addr(%x), val(%x), ret(%d)\n", 0x0100, 0x01, ret);
 		goto p_err;
@@ -532,18 +531,16 @@ int sensor_sc501_cis_stream_on(struct v4l2_subdev *subdev)
 
 	if (single_mode) {
 		/* Delay for single mode */
-		msleep(50);
+		msleep(10);
 	}
 
 	cis_data->stream_on = true;
+	sensor_SC501_fcount = 0;
 
-#ifdef DEBUG_SENSOR_TIME
-	do_gettimeofday(&end);
-	dbg_sensor(2, "[%s] time %lu us\n", __func__, (end.tv_sec - st.tv_sec)*1000000 + (end.tv_usec - st.tv_usec));
-#endif
+	if (IS_ENABLED(DEBUG_SENSOR_TIME))
+		dbg_sensor(1, "[%s] time %ldus\n", __func__, PABLO_KTIME_US_DELTA_NOW(st));
 
 p_err:
-	I2C_MUTEX_UNLOCK(cis->i2c_lock);
 
 	return ret;
 }
@@ -554,11 +551,9 @@ int sensor_sc501_cis_stream_off(struct v4l2_subdev *subdev)
 	struct is_cis *cis;
 	struct i2c_client *client;
 	cis_shared_data *cis_data;
-
-#ifdef DEBUG_SENSOR_TIME
-	struct timeval st, end;
-	do_gettimeofday(&st);
-#endif
+	u8 sensor_fcount_msb = 0, sensor_fcount_lsb = 0;
+	u16 cur_frame_count = 0;
+	ktime_t st = ktime_get();
 
 	FIMC_BUG(!subdev);
 
@@ -580,7 +575,20 @@ int sensor_sc501_cis_stream_off(struct v4l2_subdev *subdev)
 
 	I2C_MUTEX_LOCK(cis->i2c_lock);
 
-	info("%s\n", __func__);
+	ret = cis->ixc_ops->read8(client, 0x4868, &sensor_fcount_msb);
+	if (ret < 0) {
+		err("i2c transfer fail addr(%x), val(%x), ret = %d\n", 0x4868, sensor_fcount_msb, ret);
+		goto p_err;
+	}
+	ret = cis->ixc_ops->read8(client, 0x4869, &sensor_fcount_lsb);
+	if (ret < 0) {
+		err("i2c transfer fail addr(%x), val(%x), ret = %d\n", 0x4869, sensor_fcount_lsb, ret);
+		goto p_err;
+	}
+
+	cur_frame_count = (sensor_fcount_msb << 8) | sensor_fcount_lsb;
+	sensor_SC501_fcount = cur_frame_count;
+
 	ret = cis->ixc_ops->write8(client, 0x0100, 0x00);
 	if (ret < 0) {
 		err("i2c treansfer fail addr(%x), val(%x), ret(%d)\n", 0x0100, 0x00, ret);
@@ -589,11 +597,10 @@ int sensor_sc501_cis_stream_off(struct v4l2_subdev *subdev)
 
 	cis_data->stream_on = false;
 	check_uninit_value = 0;
+	info("%s done, frame_count(%d)\n", __func__, sensor_SC501_fcount);
 
-#ifdef DEBUG_SENSOR_TIME
-	do_gettimeofday(&end);
-	dbg_sensor(2, "[%s] time %lu us\n", __func__, (end.tv_sec - st.tv_sec)*1000000 + (end.tv_usec - st.tv_usec));
-#endif
+	if (IS_ENABLED(DEBUG_SENSOR_TIME))
+		dbg_sensor(1, "[%s] time %ldus\n", __func__, PABLO_KTIME_US_DELTA_NOW(st));
 
 p_err:
 	I2C_MUTEX_UNLOCK(cis->i2c_lock);
@@ -607,11 +614,7 @@ int sensor_sc501_cis_set_exposure_time(struct v4l2_subdev *subdev, u16 multiple_
 	struct i2c_client *client;
 	cis_shared_data *cis_data = NULL;
 	u16 frame_length_lines = 0;
-
-#ifdef DEBUG_SENSOR_TIME
-	struct timeval st, end;
-	do_gettimeofday(&st);
-#endif
+	ktime_t st = ktime_get();
 
 	cis = (struct is_cis *)v4l2_get_subdevdata(subdev);
 
@@ -661,10 +664,8 @@ int sensor_sc501_cis_set_exposure_time(struct v4l2_subdev *subdev, u16 multiple_
 	if (ret < 0)
 		goto p_err;
 
-#ifdef DEBUG_SENSOR_TIME
-	do_gettimeofday(&end);
-	dbg_sensor(2, "[%s] time %lu us\n", __func__, (end.tv_sec - st.tv_sec)*1000000 + (end.tv_usec - st.tv_usec));
-#endif
+	if (IS_ENABLED(DEBUG_SENSOR_TIME))
+		dbg_sensor(1, "[%s] time %ldus\n", __func__, PABLO_KTIME_US_DELTA_NOW(st));
 
 p_err:
 	I2C_MUTEX_UNLOCK(cis->i2c_lock);
@@ -682,11 +683,7 @@ int sensor_sc501_cis_get_min_exposure_time(struct v4l2_subdev *subdev, u32 *min_
 	u32 min_fine = 0;
 	u64 vt_pix_clk_freq_khz = 0;
 	u32 line_length_pck = 0;
-
-#ifdef DEBUG_SENSOR_TIME
-	struct timeval st, end;
-	do_gettimeofday(&st);
-#endif
+	ktime_t st = ktime_get();
 
 	FIMC_BUG(!subdev);
 	FIMC_BUG(!min_expo);
@@ -712,10 +709,8 @@ int sensor_sc501_cis_get_min_exposure_time(struct v4l2_subdev *subdev, u32 *min_
 
 	dbg_sensor(2, "[%s] min integration time %d\n", __func__, min_integration_time);
 
-#ifdef DEBUG_SENSOR_TIME
-	do_gettimeofday(&end);
-	dbg_sensor(2, "[%s] time %lu us\n", __func__, (end.tv_sec - st.tv_sec)*1000000 + (end.tv_usec - st.tv_usec));
-#endif
+	if (IS_ENABLED(DEBUG_SENSOR_TIME))
+		dbg_sensor(1, "[%s] time %ldus\n", __func__, PABLO_KTIME_US_DELTA_NOW(st));
 
 p_err:
 	return ret;
@@ -734,11 +729,7 @@ int sensor_sc501_cis_get_max_exposure_time(struct v4l2_subdev *subdev, u32 *max_
 	u64 vt_pix_clk_freq_khz = 0;
 	u32 line_length_pck = 0;
 	u32 frame_length_lines = 0;
-
-#ifdef DEBUG_SENSOR_TIME
-	struct timeval st, end;
-	do_gettimeofday(&st);
-#endif
+	ktime_t st = ktime_get();
 
 	FIMC_BUG(!subdev);
 	FIMC_BUG(!max_expo);
@@ -759,8 +750,8 @@ int sensor_sc501_cis_get_max_exposure_time(struct v4l2_subdev *subdev, u32 *max_
 	frame_length_lines = cis_data->frame_length_lines;
 
 	max_coarse_margin = cis_data->max_margin_coarse_integration_time;
-	max_fine_margin = line_length_pck - cis_data->min_fine_integration_time;
-	max_coarse = (2 * frame_length_lines) - max_coarse_margin;
+	max_fine_margin = ZERO_IF_NEG(line_length_pck - cis_data->min_fine_integration_time);
+	max_coarse = ZERO_IF_NEG((2 * frame_length_lines) - max_coarse_margin);
 	max_fine = cis_data->max_fine_integration_time;
 
 	max_integration_time = (u32)((u64)((line_length_pck * max_coarse / 2) + max_fine) * 1000 / vt_pix_clk_freq_khz);
@@ -774,10 +765,8 @@ int sensor_sc501_cis_get_max_exposure_time(struct v4l2_subdev *subdev, u32 *max_
 	dbg_sensor(2, "[%s] max integration time %d, max margin fine integration %d, max coarse integration %d\n",
 			__func__, max_integration_time, cis_data->max_margin_fine_integration_time, cis_data->max_coarse_integration_time);
 
-#ifdef DEBUG_SENSOR_TIME
-	do_gettimeofday(&end);
-	dbg_sensor(2, "[%s] time %lu us\n", __func__, (end.tv_sec - st.tv_sec)*1000000 + (end.tv_usec - st.tv_usec));
-#endif
+	if (IS_ENABLED(DEBUG_SENSOR_TIME))
+		dbg_sensor(1, "[%s] time %ldus\n", __func__, PABLO_KTIME_US_DELTA_NOW(st));
 
 p_err:
 	return ret;
@@ -796,11 +785,7 @@ int sensor_sc501_cis_adjust_frame_duration(struct v4l2_subdev *subdev,
 	u32 frame_length_lines = 0;
 	u32 frame_duration = 0;
 	u32 max_frame_us_time = 0;
-
-#ifdef DEBUG_SENSOR_TIME
-	struct timeval st, end;
-	do_gettimeofday(&st);
-#endif
+	ktime_t st = ktime_get();
 
 	FIMC_BUG(!subdev);
 	FIMC_BUG(!target_duration);
@@ -837,10 +822,8 @@ int sensor_sc501_cis_adjust_frame_duration(struct v4l2_subdev *subdev,
 	dbg_sensor(2, "[%s] requested min_fps(%d), max_fps(%d) from HAL, calculated frame_duration(%d), adjusted frame_duration(%d)\n",
 			__func__, cis->min_fps, cis->max_fps, frame_duration, *target_duration);
 
-#ifdef DEBUG_SENSOR_TIME
-	do_gettimeofday(&end);
-	dbg_sensor(2, "[%s] time %lu us\n", __func__, (end.tv_sec - st.tv_sec)*1000000 + (end.tv_usec - st.tv_usec));
-#endif
+	if (IS_ENABLED(DEBUG_SENSOR_TIME))
+		dbg_sensor(1, "[%s] time %ldus\n", __func__, PABLO_KTIME_US_DELTA_NOW(st));
 
 	return ret;
 }
@@ -856,11 +839,7 @@ int sensor_sc501_cis_set_frame_duration(struct v4l2_subdev *subdev, u32 frame_du
 	u64 vt_pix_clk_freq_khz = 0;
 	u32 line_length_pck = 0;
 	u16 frame_length_lines = 0;
-
-#ifdef DEBUG_SENSOR_TIME
-	struct timeval st, end;
-	do_gettimeofday(&st);
-#endif
+	ktime_t st = ktime_get();
 
 	FIMC_BUG(!subdev);
 
@@ -923,10 +902,8 @@ int sensor_sc501_cis_set_frame_duration(struct v4l2_subdev *subdev, u32 frame_du
 	cis_data->frame_length_lines = frame_length_lines;
 	cis_data->max_coarse_integration_time = (2 * cis_data->frame_length_lines) - cis_data->max_margin_coarse_integration_time;
 
-#ifdef DEBUG_SENSOR_TIME
-	do_gettimeofday(&end);
-	dbg_sensor(2, "[%s] time %lu us\n", __func__, (end.tv_sec - st.tv_sec)*1000000 + (end.tv_usec - st.tv_usec));
-#endif
+	if (IS_ENABLED(DEBUG_SENSOR_TIME))
+		dbg_sensor(1, "[%s] time %ldus\n", __func__, PABLO_KTIME_US_DELTA_NOW(st));
 
 p_err:
 	I2C_MUTEX_UNLOCK(cis->i2c_lock);
@@ -941,11 +918,7 @@ int sensor_sc501_cis_set_frame_rate(struct v4l2_subdev *subdev, u32 min_fps)
 	cis_shared_data *cis_data;
 
 	u32 frame_duration = 0;
-
-#ifdef DEBUG_SENSOR_TIME
-	struct timeval st, end;
-	do_gettimeofday(&st);
-#endif
+	ktime_t st = ktime_get();
 
 	FIMC_BUG(!subdev);
 
@@ -982,10 +955,8 @@ int sensor_sc501_cis_set_frame_rate(struct v4l2_subdev *subdev, u32 min_fps)
 
 	cis_data->min_frame_us_time = frame_duration;
 
-#ifdef DEBUG_SENSOR_TIME
-	do_gettimeofday(&end);
-	dbg_sensor(2, "[%s] time %lu us\n", __func__, (end.tv_sec - st.tv_sec)*1000000 + (end.tv_usec - st.tv_usec));
-#endif
+	if (IS_ENABLED(DEBUG_SENSOR_TIME))
+		dbg_sensor(1, "[%s] time %ldus\n", __func__, PABLO_KTIME_US_DELTA_NOW(st));
 
 p_err:
 
@@ -1000,11 +971,6 @@ int sensor_sc501_cis_adjust_analog_gain(struct v4l2_subdev *subdev, u32 input_ag
 
 	u32 again_code = 0;
 	u32 again_permile = 0;
-
-#ifdef DEBUG_SENSOR_TIME
-	struct timeval st, end;
-	do_gettimeofday(&st);
-#endif
 
 	FIMC_BUG(!subdev);
 	FIMC_BUG(!target_permile);
@@ -1127,11 +1093,7 @@ int sensor_sc501_cis_set_analog_digital_gain(struct v4l2_subdev *subdev, u32 inp
 	u32 total_dgain = 0;
 	u32 ana_real_gain = 0;
 	u32 total_fine_dgain = 0;
-
-#ifdef DEBUG_SENSOR_TIME
-	struct timeval st, end;
-	do_gettimeofday(&st);
-#endif
+	ktime_t st = ktime_get();
 
 	FIMC_BUG(!subdev);
 
@@ -1219,10 +1181,8 @@ int sensor_sc501_cis_set_analog_digital_gain(struct v4l2_subdev *subdev, u32 inp
 	if (ret < 0)
 		goto p_err;
 
-#ifdef DEBUG_SENSOR_TIME
-	do_gettimeofday(&end);
-	dbg_sensor(2, "[%s] time %lu us\n", __func__, (end.tv_sec - st.tv_sec)*1000000 + (end.tv_usec - st.tv_usec));
-#endif
+	if (IS_ENABLED(DEBUG_SENSOR_TIME))
+		dbg_sensor(1, "[%s] time %ldus\n", __func__, PABLO_KTIME_US_DELTA_NOW(st));
 
 p_err:
 	I2C_MUTEX_UNLOCK(cis->i2c_lock);
@@ -1237,11 +1197,7 @@ int sensor_sc501_cis_get_analog_gain(struct v4l2_subdev *subdev, u32 *again)
 	struct i2c_client *client;
 
 	u8 analog_gain = 0;
-
-#ifdef DEBUG_SENSOR_TIME
-	struct timeval st, end;
-	do_gettimeofday(&st);
-#endif
+	ktime_t st = ktime_get();
 
 	FIMC_BUG(!subdev);
 	FIMC_BUG(!again);
@@ -1273,10 +1229,8 @@ int sensor_sc501_cis_get_analog_gain(struct v4l2_subdev *subdev, u32 *again)
 	dbg_sensor(2, "[MOD:D:%d] %s, cur_again = %d us, analog_gain(%#x)\n",
 			cis->id, __func__, *again, analog_gain);
 
-#ifdef DEBUG_SENSOR_TIME
-	do_gettimeofday(&end);
-	dbg_sensor(2, "[%s] time %lu us\n", __func__, (end.tv_sec - st.tv_sec)*1000000 + (end.tv_usec - st.tv_usec));
-#endif
+	if (IS_ENABLED(DEBUG_SENSOR_TIME))
+		dbg_sensor(1, "[%s] time %ldus\n", __func__, PABLO_KTIME_US_DELTA_NOW(st));
 
 p_err:
 	I2C_MUTEX_UNLOCK(cis->i2c_lock);
@@ -1292,11 +1246,7 @@ int sensor_sc501_cis_get_min_analog_gain(struct v4l2_subdev *subdev, u32 *min_ag
 	cis_shared_data *cis_data;
 
 	u16 read_value = 0;
-
-#ifdef DEBUG_SENSOR_TIME
-	struct timeval st, end;
-	do_gettimeofday(&st);
-#endif
+	ktime_t st = ktime_get();
 
 	FIMC_BUG(!subdev);
 	FIMC_BUG(!min_again);
@@ -1326,10 +1276,8 @@ int sensor_sc501_cis_get_min_analog_gain(struct v4l2_subdev *subdev, u32 *min_ag
 	dbg_sensor(2, "[%s] code %d, permile %d\n", __func__,
 		cis_data->min_analog_gain[0], cis_data->min_analog_gain[1]);
 
-#ifdef DEBUG_SENSOR_TIME
-	do_gettimeofday(&end);
-	dbg_sensor(2, "[%s] time %lu us\n", __func__, (end.tv_sec - st.tv_sec)*1000000 + (end.tv_usec - st.tv_usec));
-#endif
+	if (IS_ENABLED(DEBUG_SENSOR_TIME))
+		dbg_sensor(1, "[%s] time %ldus\n", __func__, PABLO_KTIME_US_DELTA_NOW(st));
 
 p_err:
 	return ret;
@@ -1343,11 +1291,7 @@ int sensor_sc501_cis_get_max_analog_gain(struct v4l2_subdev *subdev, u32 *max_ag
 	cis_shared_data *cis_data;
 
 	u8 read_value = 0;
-
-#ifdef DEBUG_SENSOR_TIME
-	struct timeval st, end;
-	do_gettimeofday(&st);
-#endif
+	ktime_t st = ktime_get();
 
 	FIMC_BUG(!subdev);
 	FIMC_BUG(!max_again);
@@ -1377,10 +1321,8 @@ int sensor_sc501_cis_get_max_analog_gain(struct v4l2_subdev *subdev, u32 *max_ag
 	dbg_sensor(2, "[%s] code %d, permile %d\n", __func__,
 		cis_data->max_analog_gain[0], cis_data->max_analog_gain[1]);
 
-#ifdef DEBUG_SENSOR_TIME
-	do_gettimeofday(&end);
-	dbg_sensor(2, "[%s] time %lu us\n", __func__, (end.tv_sec - st.tv_sec)*1000000 + (end.tv_usec - st.tv_usec));
-#endif
+	if (IS_ENABLED(DEBUG_SENSOR_TIME))
+		dbg_sensor(1, "[%s] time %ldus\n", __func__, PABLO_KTIME_US_DELTA_NOW(st));
 
 p_err:
 	return ret;
@@ -1394,11 +1336,7 @@ int sensor_sc501_cis_get_digital_gain(struct v4l2_subdev *subdev, u32 *dgain)
 
 	u8 digital_gain = 0;
 	u8 digital_gain_dec = 0;
-
-#ifdef DEBUG_SENSOR_TIME
-	struct timeval st, end;
-	do_gettimeofday(&st);
-#endif
+	ktime_t st = ktime_get();
 
 	FIMC_BUG(!subdev);
 	FIMC_BUG(!dgain);
@@ -1435,10 +1373,8 @@ int sensor_sc501_cis_get_digital_gain(struct v4l2_subdev *subdev, u32 *dgain)
 	dbg_sensor(2, "[MOD:D:%d] %s, cur_dgain = %d us, digital_gain(%#x)\n",
 			cis->id, __func__, *dgain, digital_gain);
 
-#ifdef DEBUG_SENSOR_TIME
-	do_gettimeofday(&end);
-	dbg_sensor(2, "[%s] time %lu us\n", __func__, (end.tv_sec - st.tv_sec)*1000000 + (end.tv_usec - st.tv_usec));
-#endif
+	if (IS_ENABLED(DEBUG_SENSOR_TIME))
+		dbg_sensor(1, "[%s] time %ldus\n", __func__, PABLO_KTIME_US_DELTA_NOW(st));
 
 p_err:
 	I2C_MUTEX_UNLOCK(cis->i2c_lock);
@@ -1452,11 +1388,7 @@ int sensor_sc501_cis_get_min_digital_gain(struct v4l2_subdev *subdev, u32 *min_d
 	struct is_cis *cis;
 	struct i2c_client *client;
 	cis_shared_data *cis_data;
-
-#ifdef DEBUG_SENSOR_TIME
-	struct timeval st, end;
-	do_gettimeofday(&st);
-#endif
+	ktime_t st = ktime_get();
 
 	FIMC_BUG(!subdev);
 	FIMC_BUG(!min_dgain);
@@ -1483,10 +1415,8 @@ int sensor_sc501_cis_get_min_digital_gain(struct v4l2_subdev *subdev, u32 *min_d
 	dbg_sensor(2, "[%s] code %d, permile %d\n", __func__,
 		cis_data->min_digital_gain[0], cis_data->min_digital_gain[1]);
 
-#ifdef DEBUG_SENSOR_TIME
-	do_gettimeofday(&end);
-	dbg_sensor(2, "[%s] time %lu us\n", __func__, (end.tv_sec - st.tv_sec)*1000000 + (end.tv_usec - st.tv_usec));
-#endif
+	if (IS_ENABLED(DEBUG_SENSOR_TIME))
+		dbg_sensor(1, "[%s] time %ldus\n", __func__, PABLO_KTIME_US_DELTA_NOW(st));
 
 p_err:
 	return ret;
@@ -1498,11 +1428,7 @@ int sensor_sc501_cis_get_max_digital_gain(struct v4l2_subdev *subdev, u32 *max_d
 	struct is_cis *cis;
 	struct i2c_client *client;
 	cis_shared_data *cis_data;
-
-#ifdef DEBUG_SENSOR_TIME
-	struct timeval st, end;
-	do_gettimeofday(&st);
-#endif
+	ktime_t st = ktime_get();
 
 	FIMC_BUG(!subdev);
 	FIMC_BUG(!max_dgain);
@@ -1529,10 +1455,67 @@ int sensor_sc501_cis_get_max_digital_gain(struct v4l2_subdev *subdev, u32 *max_d
 	dbg_sensor(2, "[%s] code %d, permile %d\n", __func__,
 		cis_data->max_digital_gain[0], cis_data->max_digital_gain[1]);
 
-#ifdef DEBUG_SENSOR_TIME
-	do_gettimeofday(&end);
-	dbg_sensor(2, "[%s] time %lu us\n", __func__, (end.tv_sec - st.tv_sec)*1000000 + (end.tv_usec - st.tv_usec));
-#endif
+	if (IS_ENABLED(DEBUG_SENSOR_TIME))
+		dbg_sensor(1, "[%s] time %ldus\n", __func__, PABLO_KTIME_US_DELTA_NOW(st));
+
+p_err:
+	return ret;
+}
+
+int sensor_sc501_cis_compensate_gain_for_extremely_br(struct v4l2_subdev *subdev, u32 expo, u32 *again, u32 *dgain)
+{
+	int ret = 0;
+	struct is_cis *cis;
+	cis_shared_data *cis_data;
+
+	u64 vt_pic_clk_freq_khz = 0;
+	u32 line_length_pck = 0;
+	u32 min_fine_int = 0;
+	u16 coarse_int = 0;
+	u32 compensated_again = 0;
+
+	FIMC_BUG(!subdev);
+	FIMC_BUG(!again);
+	FIMC_BUG(!dgain);
+
+	cis = (struct is_cis *)v4l2_get_subdevdata(subdev);
+	if (!cis) {
+		err("cis is NULL");
+		ret = -EINVAL;
+		goto p_err;
+	}
+	cis_data = cis->cis_data;
+
+	vt_pic_clk_freq_khz = cis_data->pclk / 1000;
+	line_length_pck = cis_data->line_length_pck;
+	min_fine_int = cis_data->min_fine_integration_time;
+
+	if (line_length_pck <= 0) {
+		err("[%s] invalid line_length_pck(%d)\n", __func__, line_length_pck);
+		goto p_err;
+	}
+
+	coarse_int = ((expo * vt_pic_clk_freq_khz) / 1000 - min_fine_int) / line_length_pck;
+	if (coarse_int < cis_data->min_coarse_integration_time) {
+		dbg_sensor(1, "[MOD:D:%d] %s, vsync_cnt(%d), long coarse(%d) min(%d)\n", cis->id, __func__,
+			cis_data->sen_vsync_count, coarse_int, cis_data->min_coarse_integration_time);
+		coarse_int = cis_data->min_coarse_integration_time;
+	}
+
+	if (coarse_int <= 100) {
+		compensated_again = (*again * ((expo * vt_pic_clk_freq_khz) / 1000 - min_fine_int)) / (line_length_pck * coarse_int);
+
+		if (compensated_again < cis_data->min_analog_gain[1]) {
+			*again = cis_data->min_analog_gain[1];
+		} else if (*again >= cis_data->max_analog_gain[1]) {
+			*dgain = (*dgain * ((expo * vt_pic_clk_freq_khz) / 1000 - min_fine_int)) / (line_length_pck * coarse_int);
+		} else {
+			*again = compensated_again;
+		}
+
+		dbg_sensor(1, "[%s] exp(%d), again(%d), dgain(%d), coarse_int(%d), compensated_again(%d)\n",
+			__func__, expo, *again, *dgain, coarse_int, compensated_again);
+	}
 
 p_err:
 	return ret;
@@ -1665,7 +1648,9 @@ int sensor_sc501_cis_wait_streamon(struct v4l2_subdev *subdev)
 		goto p_err;
 	}
 
+	I2C_MUTEX_LOCK(cis->i2c_lock);
 	ret = cis->ixc_ops->read8(client, 0x4869, &sensor_fcount_lsb);
+	I2C_MUTEX_UNLOCK(cis->i2c_lock);
 	if (ret < 0) {
 		err("i2c transfer fail addr(%x), val(%x), ret = %d\n", 0x4869, sensor_fcount_lsb, ret);
 		goto p_err;
@@ -1674,7 +1659,9 @@ int sensor_sc501_cis_wait_streamon(struct v4l2_subdev *subdev)
 
 	/* Checking stream on */
 	do {
+		I2C_MUTEX_LOCK(cis->i2c_lock);
 		ret = cis->ixc_ops->read8(client, 0x4869, &sensor_fcount_lsb);
+		I2C_MUTEX_UNLOCK(cis->i2c_lock);
 		if (ret < 0) {
 			err("i2c transfer fail addr(%x), val(%x), ret = %d\n", 0x4869, sensor_fcount_lsb, ret);
 			goto p_err;
@@ -1710,7 +1697,6 @@ int sensor_sc501_cis_wait_streamoff(struct v4l2_subdev *subdev)
 	cis_shared_data *cis_data;
 	u8 sensor_fcount_msb = 0, sensor_fcount_lsb = 0;
 	u16 cur_frame_value = 0;
-	u16 next_frame_value = 0;
 
 	FIMC_BUG(!subdev);
 
@@ -1737,23 +1723,38 @@ int sensor_sc501_cis_wait_streamoff(struct v4l2_subdev *subdev)
 
 	/* Checking stream off */
 	do {
-
+		I2C_MUTEX_LOCK(cis->i2c_lock);
 		ret = cis->ixc_ops->read8(client, 0x4868, &sensor_fcount_msb);
+		I2C_MUTEX_UNLOCK(cis->i2c_lock);
 		if (ret < 0) {
 			err("i2c transfer fail addr(%x), val(%x), ret = %d\n", 0x4868, sensor_fcount_msb, ret);
 			goto p_err;
 		}
+		I2C_MUTEX_LOCK(cis->i2c_lock);
 		ret = cis->ixc_ops->read8(client, 0x4869, &sensor_fcount_lsb);
+		I2C_MUTEX_UNLOCK(cis->i2c_lock);
 		if (ret < 0) {
 			err("i2c transfer fail addr(%x), val(%x), ret = %d\n", 0x4869, sensor_fcount_lsb, ret);
 			goto p_err;
 		}
-
-		next_frame_value = (sensor_fcount_msb << 8) | sensor_fcount_lsb;
-		if (next_frame_value == cur_frame_value)
+		cur_frame_value = (sensor_fcount_msb << 8) | sensor_fcount_lsb;
+		/*
+		* [ Problem ]
+		* If fcount is '0', it is hard to know what '0' exactly means.
+		* It might mean that streamoff is done or current frame count.
+		*
+		* [ Measure ]
+		* If fcount is '0xf' or '0xff' or '0xffff' or '0' in streamoff, delay by 33 ms.
+		*/
+		if ((sensor_SC501_fcount == 0 || sensor_SC501_fcount == 0xF || sensor_SC501_fcount == 0xFF
+			|| sensor_SC501_fcount == 0xFFFF) && cur_frame_value == 0) {
+			usleep_range(33000, 33000);
+			info("[%s] delay by 33 ms (stream_off fcount : %d, wait_stream_off fcount : %d",
+				__func__, sensor_SC501_fcount, cur_frame_value);
+			break;
+		} else if (cur_frame_value == 0)
 			break;
 
-		cur_frame_value = next_frame_value;
 		usleep_range(POLL_TIME_MS, POLL_TIME_MS);
 		poll_time_ms += POLL_TIME_MS;
 
@@ -1793,7 +1794,7 @@ static struct is_cis_ops cis_ops_sc501 = {
 	// .cis_get_digital_gain = sensor_sc501_cis_get_digital_gain,
 	.cis_get_min_digital_gain = sensor_sc501_cis_get_min_digital_gain,
 	.cis_get_max_digital_gain = sensor_sc501_cis_get_max_digital_gain,
-	// .cis_compensate_gain_for_extremely_br = sensor_cis_compensate_gain_for_extremely_br,
+	.cis_compensate_gain_for_extremely_br = sensor_sc501_cis_compensate_gain_for_extremely_br,
 	.cis_wait_streamoff = sensor_sc501_cis_wait_streamoff,
 	.cis_wait_streamon = sensor_sc501_cis_wait_streamon,
 	// .cis_check_rev_on_init = sensor_sc501_cis_check_rev,
@@ -1826,9 +1827,6 @@ int cis_sc501_probe(struct i2c_client *client,
 	cis->use_dgain = false;
 	cis->hdr_ctrl_by_again = false;
 	cis->use_total_gain = true;
-
-	cis->use_initial_ae = of_property_read_bool(dnode, "use_initial_ae");
-	probe_info("%s use initial_ae(%d)\n", __func__, cis->use_initial_ae);
 
 	ret = of_property_read_string(dnode, "setfile", &setfile);
 	if (ret) {

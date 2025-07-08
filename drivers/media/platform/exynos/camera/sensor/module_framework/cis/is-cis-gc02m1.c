@@ -53,10 +53,6 @@
 #define STREAM_ON_POLL_TIME_MS (500)
 #define STREAM_OFF_WAIT_TIME 250
 
-#if defined(CONFIG_CAMERA_VENDER_MCD_V2)
-extern const struct is_vender_rom_addr *vender_rom_addr[SENSOR_POSITION_MAX];
-#endif
-
 static const u32 *sensor_gc02m1_global;
 static u32 sensor_gc02m1_global_size;
 static const u32 **sensor_gc02m1_setfiles;
@@ -292,9 +288,11 @@ u16 sensor_gc02m1_cis_get_framecount(struct is_cis *cis)
 	u8 sensor_fcount_msb = 0, sensor_fcount_lsb = 0;
 
 	client = cis->client;
+	I2C_MUTEX_LOCK(cis->i2c_lock);
 	ret = cis->ixc_ops->addr8_write8(client, 0xfe, 0x00);
 	ret |= cis->ixc_ops->addr8_read8(client, 0xe1, &sensor_fcount_msb);
 	ret |= cis->ixc_ops->addr8_read8(client, 0xe2, &sensor_fcount_lsb);
+	I2C_MUTEX_UNLOCK(cis->i2c_lock);
 	if (ret < 0) {
 		err("get_framecount fail");
 	} else {
@@ -628,7 +626,7 @@ int sensor_gc02m1_cis_set_global_setting(struct v4l2_subdev *subdev)
 	cis = (struct is_cis *)v4l2_get_subdevdata(subdev);
 	FIMC_BUG(!cis);
 
-	dbg_sensor(2, "[%s] start\n", __func__);
+	info("[%s] start\n", __func__);
 
 	I2C_MUTEX_LOCK(cis->i2c_lock);
 	/* setfile global setting is at camera entrance */
@@ -638,7 +636,7 @@ int sensor_gc02m1_cis_set_global_setting(struct v4l2_subdev *subdev)
 		goto p_err;
 	}
 
-	dbg_sensor(2, "[%s] done\n", __func__);
+	info("[%s] done\n", __func__);
 
 p_err:
 	I2C_MUTEX_UNLOCK(cis->i2c_lock);
@@ -698,7 +696,7 @@ int sensor_gc02m1_cis_mode_change(struct v4l2_subdev *subdev, u32 mode)
 	dbg_sensor(2, "[%s] frame_time(%d), rolling_shutter_skew(%lld)\n", __func__,
 		cis->cis_data->frame_time, cis->cis_data->rolling_shutter_skew);
 
-	dbg_sensor(2, "[%s] mode changed(%d)\n", __func__, mode);
+	info("[%s] mode changed(%d)\n", __func__, mode);
 
 p_i2c_err:
 	I2C_MUTEX_UNLOCK(cis->i2c_lock);
@@ -902,7 +900,9 @@ int sensor_gc02m1_cis_stream_on(struct v4l2_subdev *subdev)
 	/* Sensor Dual sync on/off */
 	if (single_mode == false) {
 		info("[%s] dual sync slave mode\n", __func__);
+		I2C_MUTEX_LOCK(cis->i2c_lock);
 		ret = sensor_cis_set_registers_addr8(subdev, sensor_gc02m1_fsync_slave, sensor_gc02m1_fsync_slave_size);
+		I2C_MUTEX_UNLOCK(cis->i2c_lock);
 		if (ret < 0)
 			err("[%s] sensor_gc02m1_fsync_slave fail\n", __func__);
 
@@ -911,10 +911,14 @@ int sensor_gc02m1_cis_stream_on(struct v4l2_subdev *subdev)
 
 	/* Sensor stream on */
 	/* 1. page_select */
+	I2C_MUTEX_LOCK(cis->i2c_lock);
 	ret = cis->ixc_ops->addr8_write8(client, 0xfe, 0x00);
+	I2C_MUTEX_UNLOCK(cis->i2c_lock);
 	if (ret < 0)
 		 goto p_err;
+	I2C_MUTEX_LOCK(cis->i2c_lock);
 	ret = cis->ixc_ops->addr8_write8(client, 0x3E, 0x90);
+	I2C_MUTEX_UNLOCK(cis->i2c_lock);
 	if (ret < 0) {
 		err("i2c transfer fail addr(%x), val(%x), ret(%d)\n", 0x3e, 0x90, ret);
 		goto p_err;
@@ -956,9 +960,9 @@ int sensor_gc02m1_cis_stream_off(struct v4l2_subdev *subdev)
 
 	dbg_sensor(2, "[MOD:D:%d] %s\n", cis->id, __func__);
 
-	I2C_MUTEX_LOCK(cis->i2c_lock);
-
 	sensor_gc02m1_fcount = sensor_gc02m1_cis_get_framecount(cis);
+
+	I2C_MUTEX_LOCK(cis->i2c_lock);
 
 	/* Page Selection */
 	ret = cis->ixc_ops->addr8_write8(client, 0xfe, 0x00);
@@ -1061,8 +1065,8 @@ int sensor_gc02m1_cis_get_max_exposure_time(struct v4l2_subdev *subdev, u32 *max
 	frame_length_lines = cis_data->frame_length_lines;
 
 	max_coarse_margin = cis_data->max_margin_coarse_integration_time;
-	max_fine_margin = line_length_pck - cis_data->min_fine_integration_time;
-	max_coarse = frame_length_lines - max_coarse_margin;
+	max_fine_margin = ZERO_IF_NEG(line_length_pck - cis_data->min_fine_integration_time);
+	max_coarse = ZERO_IF_NEG(frame_length_lines - max_coarse_margin);
 	max_fine = cis_data->max_fine_integration_time;
 
 	max_integration_time = (u32)((u64)((line_length_pck * max_coarse) + max_fine) * 1000 / vt_pix_clk_freq_khz);

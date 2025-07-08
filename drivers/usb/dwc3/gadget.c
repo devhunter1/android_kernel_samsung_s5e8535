@@ -2636,14 +2636,6 @@ static int dwc3_gadget_soft_disconnect(struct dwc3 *dwc)
 
 static int dwc3_gadget_soft_connect(struct dwc3 *dwc)
 {
-	/*
-	 * In the Synopsys DWC_usb31 1.90a programming guide section
-	 * 4.1.9, it specifies that for a reconnect after a
-	 * device-initiated disconnect requires a core soft reset
-	 * (DCTL.CSftRst) before enabling the run/stop bit.
-	 */
-
-	dwc3_event_buffers_setup(dwc);
 	__dwc3_gadget_start(dwc);
 	return dwc3_gadget_run_stop(dwc, true);
 }
@@ -2705,10 +2697,12 @@ static int dwc3_gadget_pullup(struct usb_gadget *g, int is_on)
 
 	synchronize_irq(dwc->irq_gadget);
 
-	if (!is_on)
+	if (!is_on) {
 		ret = dwc3_gadget_soft_disconnect(dwc);
-	else
-		ret = dwc3_gadget_soft_connect(dwc);
+	} else {
+		__dwc3_gadget_start(dwc);
+		ret = dwc3_gadget_run_stop(dwc, true);
+	}
 
 	if (is_on) {
 		ret = dwc3_gadget_set_link_state(dwc, DWC3_LINK_STATE_RX_DET);
@@ -2873,6 +2867,9 @@ static int __dwc3_gadget_start(struct dwc3 *dwc)
 	dwc3_ep0_out_start(dwc);
 
 	dwc3_gadget_enable_irq(dwc);
+	irq_set_affinity_hint(dwc->irq_gadget, cpumask_of(0x1));
+
+	pr_info("%s ---\n", __func__);
 	dwc3_enable_susphy(dwc, true);
 
 	return 0;
@@ -3881,6 +3878,7 @@ void dwc3_stop_active_transfer(struct dwc3_ep *dep, bool force,
 	 * controller to handle the command completely before DWC3
 	 * remove requests attempts to unmap USB request buffers.
 	 */
+
 	__dwc3_stop_active_transfer(dep, force, interrupt);
 }
 
@@ -4670,7 +4668,7 @@ void dwc3_gadget_exit(struct dwc3 *dwc)
 
 int dwc3_gadget_suspend(struct dwc3 *dwc)
 {
-	unsigned long flags=0;
+	unsigned long flags;
 	int ret;
 
 	if (dwc->gadget->deactivated) {
@@ -4703,7 +4701,6 @@ err:
 
 int dwc3_gadget_resume(struct dwc3 *dwc)
 {
-
 	if (!dwc->gadget_driver || !dwc->gadget->connected)
 		return 0;
 
@@ -4711,9 +4708,6 @@ int dwc3_gadget_resume(struct dwc3 *dwc)
 		pr_info("%s: gadget deactivated. return!", __func__);
 		return 0;
 	}
-
-	if (!dwc->gadget_driver || !dwc->softconnect)
-		return 0;
 
 	return dwc3_gadget_soft_connect(dwc);
 }

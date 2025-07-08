@@ -182,4 +182,12 @@ extern struct dbg_snapshot_dpm dss_dpm;
 #define DSS_OFFSET_ITEM_INFO		(0x900)
 /* DSS_BASE + 0xE00 -- 0xFFF is reserved */
 #define DSS_OFFSET_PANIC_STRING		(0xE00)
+
+struct wdt_info {
+	u64 time;
+	u32 cpu;
+	char caller[128];
+	char msg[128];
+} __packed;
+
 #endif

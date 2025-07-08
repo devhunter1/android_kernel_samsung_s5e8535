@@ -970,6 +970,7 @@ int is_sec_ldo_enabled(struct device *dev, char *name) {
 	regulator = regulator_get(dev, name);
 	if (IS_ERR_OR_NULL(regulator)) {
 		err("%s : regulator_get(%s) fail", __func__, name);
+		kfree(regulator);
 		return -EINVAL;
 	}
 
@@ -988,6 +989,7 @@ int is_sec_ldo_enable(struct device *dev, char *name, bool on)
 	regulator = regulator_get(dev, name);
 	if (IS_ERR_OR_NULL(regulator)) {
 		err("%s : regulator_get(%s) fail", __func__, name);
+		kfree(regulator);
 		return -EINVAL;
 	}
 
@@ -2420,6 +2422,187 @@ exit:
 	return ret;
 }
 
+int is_sec_readcal_otprom_sc501(int rom_id, struct is_rom_info *finfo, char *buf, int position)
+{
+	int ret = 0;
+	int retry = IS_CAL_RETRY_CNT;
+	struct is_core *core = is_get_is_core();
+	struct is_vender_specific *specific = core->vender.private_data;
+	struct i2c_client *client = NULL;
+	struct is_cis *cis = NULL;
+	struct v4l2_subdev *subdev_cis = NULL;
+	struct is_device_sensor_peri *sensor_peri = NULL;
+	struct is_module_enum *module = NULL;
+	int cal_size = 0;
+	u8 otp_bank = 0;
+	u16 read_addr;
+	u8 status = 1;
+	int cnt = 0;
+#ifdef CONFIG_SEC_CAL_ENABLE
+	char *buf_rom_data = NULL;
+#endif
+
+	info("%s E\n", __func__);
+
+	is_vendor_get_module_from_position(position,&module);
+	info("Camera: read cal data from OTPROM (rom_id:%d)\n", rom_id);
+
+	sensor_peri = (struct is_device_sensor_peri *)module->private_data;
+	subdev_cis = sensor_peri->subdev_cis;
+	cis = (struct is_cis *)v4l2_get_subdevdata(sensor_peri->subdev_cis);
+
+	if (cis == NULL) {
+		err("cis is NULL");
+		return -1;
+	}
+
+	client = specific->rom_client[rom_id];
+
+	cal_size = finfo->rom_size;
+	info("%s: rom_id : %d, cal_size :%d\n", __func__, rom_id, cal_size);
+
+crc_retry:
+	ret = cis->ixc_ops->write8(client, 0x36B0, 0x4C);
+	ret |= cis->ixc_ops->write8(client, 0x36B1, 0xD8);
+	ret |= cis->ixc_ops->write8(client, 0x36B2, 0x01);
+
+	if (ret < 0) {
+		err("is->ixc_ops->write8(0x36B0) fail, ret(%d)\n", ret);
+		goto exit;
+	}
+
+	ret = cis->ixc_ops->read8(client, SC501CS_OTP_CHECK_BANK, &otp_bank);
+	info("check OTP bank:0x%x \n", otp_bank);
+
+	switch (otp_bank) {
+	case SC501CS_OTP_BANK1_MARK:
+		read_addr = SC501CS_OTP_BANK1_START_ADDR;
+		ret = cis->ixc_ops->write8(client, 0x4408, 0x00);
+		ret |= cis->ixc_ops->write8(client, 0x4409, 0x00);
+
+		ret |= cis->ixc_ops->write8(client, 0x440A, 0x07);
+		ret |= cis->ixc_ops->write8(client, 0x440B, 0xFF);
+
+		ret |= cis->ixc_ops->write8(client, 0x4401, 0x1F);
+		if (ret < 0) {
+			err("failed to set bank1, ret(%d)\n", ret);
+			goto exit;
+		}
+		break;
+	case SC501CS_OTP_BANK2_MARK:
+		read_addr = SC501CS_OTP_BANK2_START_ADDR;
+		ret = cis->ixc_ops->write8(client, 0x4408, 0x08);
+		ret |= cis->ixc_ops->write8(client, 0x4409, 0x00);
+
+		ret |= cis->ixc_ops->write8(client, 0x440A, 0x0F);
+		ret |= cis->ixc_ops->write8(client, 0x440B, 0xFF);
+
+ 		ret |= cis->ixc_ops->write8(client, 0x4401, 0x1E);
+		if (ret < 0) {
+			err("failed to set bank2, ret(%d)\n", ret);
+			goto exit;
+		}
+		break;
+	default:
+		err("check bank: fail");
+		goto exit;
+	}
+	info("%s: otp_bank = %d start_addr = %x\n", __func__, otp_bank, read_addr);
+
+	ret = cis->ixc_ops->write8(client, 0x4400, 0x11);
+	usleep_range(10000, 10100);
+
+	/* Read completed check */
+	status = 1;
+	cnt = 0;
+	while (status == 0x01) {
+		ret = cis->ixc_ops->read8(client, 0x4420, &status);
+		if (ret < 0) {
+			info("%s: Failed to read status (cnt:%d)", __func__, cnt++);
+		}
+		status &= 0x01;
+		usleep_range(1000, 1010);
+		info("1st read completed check is still ongoing (cnt:%d)", cnt++);
+	}
+
+	info("Camera: I2C read cal data for rom_id:%d\n",rom_id);
+	ret = cis->ixc_ops->read8_size(client, &buf[0], read_addr, IS_READ_MAX_SC501_OTP_CAL_SIZE);
+	if (ret != IS_READ_MAX_SC501_OTP_CAL_SIZE) {
+		err("failed to is_i2c_read (%d)\n", ret);
+		ret = -EINVAL;
+		goto exit;
+	}
+
+	if (finfo->rom_header_cal_map_ver_start_addr != -1)
+		memcpy(finfo->cal_map_ver, &buf[finfo->rom_header_cal_map_ver_start_addr], IS_CAL_MAP_VER_SIZE);
+
+	if (finfo->rom_header_version_start_addr != -1)
+		memcpy(finfo->header_ver, &buf[finfo->rom_header_version_start_addr], IS_HEADER_VER_SIZE);
+
+	info("Camera : OTPROM Cal map_version = %s(%x%x%x%x)\n", finfo->cal_map_ver, finfo->cal_map_ver[0],
+		finfo->cal_map_ver[1], finfo->cal_map_ver[2], finfo->cal_map_ver[3]);
+	info("OTPROM header version = %s(%x%x%x%x)\n", finfo->header_ver,
+		finfo->header_ver[0], finfo->header_ver[1], finfo->header_ver[2], finfo->header_ver[3]);
+
+	if (!is_sec_check_rom_ver(core, rom_id)) {
+		info("Camera: Do not read eeprom cal data. OTPROM version is low.\n");
+		ret = -EINVAL;
+		goto exit;
+	}
+
+	is_sec_parse_rom_info(finfo, buf, rom_id);
+
+#ifdef DEBUG_FORCE_DUMP_ENABLE
+	{
+		char file_path[100];
+
+		loff_t pos = 0;
+
+		memset(file_path, 0x00, sizeof(file_path));
+		snprintf(file_path, sizeof(file_path), "%srom%d_dump.bin", IS_FW_DUMP_PATH, rom_id);
+
+		if (write_data_to_file(file_path, buf, cal_size, &pos) < 0) {
+			info("Failed to dump cal data. rom_id:%d\n", rom_id);
+		}
+	}
+#endif
+	/* CRC check */
+	retry = IS_CAL_RETRY_CNT;
+	if (!is_sec_check_cal_crc32(buf, rom_id) && (retry > 0)) {
+		retry--;
+		goto crc_retry;
+	}
+
+	is_sec_check_module_state(finfo);
+
+#ifdef CONFIG_SEC_CAL_ENABLE
+	/* Store original rom data before conversion for intrinsic cal */
+	if (is_sec_check_cal_crc32(buf, rom_id) == true && is_need_use_standard_cal(rom_id)) {
+		is_sec_get_cal_buf_rom_data(&buf_rom_data, rom_id);
+		if (buf != NULL && buf_rom_data != NULL)
+			memcpy(buf_rom_data, buf, is_sec_get_max_cal_size(core, rom_id));
+	}
+#endif
+
+exit:
+	/* sc501cs_otp_off_setting */
+
+	ret = cis->ixc_ops->write8(client, 0x4424, 0x01);
+	usleep_range(1000, 1010);
+	ret |= cis->ixc_ops->write8(client, 0x4408, 0x00);
+	ret |= cis->ixc_ops->write8(client, 0x4409, 0x00);
+	ret |= cis->ixc_ops->write8(client, 0x440A, 0x07);
+	ret |= cis->ixc_ops->write8(client, 0x440B, 0xFF);
+	ret |= cis->ixc_ops->write8(client, 0x4401, 0x1F);
+
+	if (ret < 0) {
+		err("sc501cs_otp_off_setting fail, ret(%d)\n", ret);
+	}
+
+	usleep_range(10000, 10100);
+	return ret;
+}
+
 int is_sec_i2c_read_otp_gc5035(struct i2c_client *client, char *buf, u16 start_addr, size_t size)
 {
 	return 0;
@@ -2721,6 +2904,13 @@ int is_sec_readcal_otprom_gc02m1(int rom_id)
 	int position = is_vendor_get_position_from_rom_id(rom_id);
 
 	is_vendor_get_module_from_position(position,&module);
+
+	if (!module) {
+		err("%s, module is NULL", __func__);
+		ret = -EINVAL;
+		goto exit;
+	}
+
 	info("Camera: read cal data from OTPROM (rom_id:%d)\n", rom_id);
 
 	sensor_peri = (struct is_device_sensor_peri *)module->private_data;
@@ -2845,6 +3035,9 @@ int is_sec_readcal_otprom(int rom_id)
 			break;
 		case SENSOR_NAME_S5K3L6:
 			ret = is_sec_readcal_otprom_3l6(rom_id, finfo, buf, position);
+			break;
+		case SENSOR_NAME_SC501:
+			ret = is_sec_readcal_otprom_sc501(rom_id, finfo, buf, position);
 			break;
 #if 0
 		case SENSOR_NAME_S5K4HA:

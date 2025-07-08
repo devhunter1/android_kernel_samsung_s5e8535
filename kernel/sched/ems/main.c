@@ -807,8 +807,15 @@ void ems_clear_binder_task(struct task_struct *p)
 
 void ems_set_binder_priority(struct binder_transaction *t, struct task_struct *p)
 {
-	if (t && t->need_reply && ems_boosted_tex(current))
-		ems_boosted_tex(p) = 1;
+	if (t && t->need_reply) {
+		if (ems_boosted_tex(current)) {
+			ems_boosted_tex(p) = 1;
+		} else if (emstune_get_cur_mode() == 5 && emstune_get_cur_level() == 2
+				&& cpuctl_task_group_idx(current) == CGROUP_TOPAPP
+				&& current->prio <= DEFAULT_PRIO) {
+			ems_binder_task(p) = 1;
+		}
+	}
 }
 
 void ems_restore_binder_priority(struct binder_transaction *t, struct task_struct *p)

@@ -265,7 +265,7 @@ retry:
 	} else {
 		blkcnt_t count = 1;
 
-		err = inc_valid_block_count(sbi, inode, &count);
+		err = inc_valid_block_count(sbi, inode, &count, true);
 		if (err) {
 			f2fs_put_dnode(&dn);
 			return err;
@@ -405,11 +405,13 @@ int f2fs_commit_atomic_write(struct inode *inode)
 		return err;
 
 	f2fs_down_write(&fi->i_gc_rwsem[WRITE]);
+	f2fs_down_write(&F2FS_I(fi->cow_inode)->i_gc_rwsem[WRITE]);
 	f2fs_lock_op(sbi);
 
 	err = __f2fs_commit_atomic_write(inode);
 
 	f2fs_unlock_op(sbi);
+	f2fs_up_write(&F2FS_I(fi->cow_inode)->i_gc_rwsem[WRITE]);
 	f2fs_up_write(&fi->i_gc_rwsem[WRITE]);
 
 	return err;
@@ -2534,7 +2536,7 @@ find_other_zone:
 		if (dir == ALLOC_RIGHT) {
 			secno = find_next_zero_bit(free_i->free_secmap,
 							MAIN_SECS(sbi), 0);
-			if (secno >= MAIN_SECS(sbi)) {
+			if (unlikely(secno >= MAIN_SECS(sbi))) {
 				ret = -ENOSPC;
 				goto out_unlock;
 			}
@@ -2553,7 +2555,7 @@ find_other_zone:
 		}
 		left_start = find_next_zero_bit(free_i->free_secmap,
 							MAIN_SECS(sbi), 0);
-		if (left_start >= MAIN_SECS(sbi)) {
+		if (unlikely(left_start >= MAIN_SECS(sbi))) {
 			ret = -ENOSPC;
 			goto out_unlock;
 		}
@@ -2594,8 +2596,10 @@ skip_left:
 	}
 got_it:
 	/* set it as dirty segment in free segmap */
-	if (unlikely(test_bit(segno, free_i->free_segmap)))
+	if (unlikely(test_bit(segno, free_i->free_segmap))) {
+		ret = -ENOSPC;
 		goto out_unlock;
+	}
 
 	__set_inuse(sbi, segno);
 	*newseg = segno;
@@ -2790,7 +2794,7 @@ static int change_curseg(struct f2fs_sb_info *sbi, int type, bool flush)
 	/* W/A - prevent panic while shutdown */
 	if (unlikely(ignore_fs_panic && IS_ERR(sum_page))) {
 		//pr_err("%s: Ignore panic err=%ld\n", __func__, PTR_ERR(sum_page));
-		return 0;
+		return PTR_ERR(sum_page);
 	}
 
 	sum_node = (struct f2fs_summary_block *)page_address(sum_page);
@@ -2988,6 +2992,8 @@ static int allocate_segment_by_default(struct f2fs_sb_info *sbi,
 		ret = new_curseg(sbi, type, false);
 
 	stat_inc_seg_type(sbi, curseg);
+	sbi->sec_stat.alloc_seg_type[curseg->alloc_type]++;
+
 	return ret;
 }
 

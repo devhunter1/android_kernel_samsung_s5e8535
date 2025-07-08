@@ -584,6 +584,7 @@ enum clk_id {
     OSCCLK_DSU,
     DFTMUX_CLK_DSU_OSCCLK,
     CLK_DSU_OSCCLK,
+    IOCLK_AUDIOCDCLK6,
     end_of_fixed_rate,
     num_of_fixed_rate = (end_of_fixed_rate - FIXED_RATE_TYPE & MASK_OF_ID),
 };

@@ -1587,7 +1587,8 @@ static void dsim_reg_set_config(u32 id, struct dsim_reg_config *config,
 		dsim_reg_set_cmd_ctrl(id, config, clks);
 	} else if (config->mode == DSIM_VIDEO_MODE) {
 		dsim_reg_set_vt_compensate(id, config->vt_compensation);
-		dsim_reg_set_vstatus_int(id, DSIM_VFP);
+		dsim_reg_set_vstatus_int(id,
+			get_phy_type() == DSIM_DSI_INTF_DPHY ? DSIM_VFP : DSIM_VSYNC);
 	}
 
 	if (config->version.major == 0 && config->version.minor == 0) {
@@ -1738,17 +1739,13 @@ static int dsim_reg_set_clocks(u32 id, struct dsim_clks *clks,
 	u32 pll_lock_cnt;
 	int ret = 0;
 	u32 hsmode = 0;
-	struct stdphy_pms *dphy_pms = NULL;
-	u32 vod = UINT_MAX;
 #ifdef DPDN_INV_SWAP
 	u32 inv_data[4] = {0, };
 #endif
-	if (config) {
-		dphy_pms = &config->dphy_pms;
-		vod = config->drive_strength;
-	}
 
 	if (en) {
+		struct stdphy_pms *dphy_pms = &config->dphy_pms;
+
 		/*
 		 * Do not need to set clocks related with PLL,
 		 * if DPHY_PLL is already stabled because of LCD_ON_UBOOT.
@@ -1763,12 +1760,10 @@ static int dsim_reg_set_clocks(u32 id, struct dsim_clks *clks,
 		 * PMS value has to be optained by PMS calculation tool
 		 * released to customer
 		 */
-		if (dphy_pms) {
-			pll.p = dphy_pms->p;
-			pll.m = dphy_pms->m;
-			pll.s = dphy_pms->s;
-			pll.k = dphy_pms->k;
-		}
+		pll.p = dphy_pms->p;
+		pll.m = dphy_pms->m;
+		pll.s = dphy_pms->s;
+		pll.k = dphy_pms->k;
 
 		/* get word clock */
 		/* clks ->hs_clk is from DT */
@@ -1793,7 +1788,7 @@ static int dsim_reg_set_clocks(u32 id, struct dsim_clks *clks,
 
 		/* set BIAS ctrl : default value */
 		dsim_reg_set_bias_con(id, DSIM_PHY_BIAS_CON_VAL, get_phy_type());
-		dsim_reg_set_hs_vod(id, vod);
+		dsim_reg_set_hs_vod(id, config->drive_strength);
 
 		/* set PLL ctrl : default value */
 		dsim_reg_set_pll_con(id, DSIM_PHY_PLL_CON_VAL, get_phy_type());
@@ -1811,7 +1806,7 @@ static int dsim_reg_set_clocks(u32 id, struct dsim_clks *clks,
 			dsim_reg_set_cphy_timing_values(id, &ct, hsmode);
 		}
 		/* check dither sequence */
-		if (dphy_pms && dphy_pms->dither_en) {
+		if (dphy_pms->dither_en) {
 			dsim_reg_set_dphy_param_dither(id, dphy_pms);
 			dsim_reg_set_dphy_dither_en(id, 1);
 		}
@@ -1865,13 +1860,7 @@ static int dsim_reg_set_clocks(u32 id, struct dsim_clks *clks,
 		ret = dsim_reg_enable_pll(id, 1);
 	} else {
 		/* check disable PHY timing */
-		/* TBD */
 		dsim_reg_set_esc_clk_prescaler(id, 0, 0xff);
-
-		/* check dither sequence */
-		if (dphy_pms && dphy_pms->dither_en)
-			dsim_reg_set_dphy_dither_en(id, 0);
-
 		dsim_reg_enable_pll(id, 0);
 	}
 
@@ -2732,7 +2721,7 @@ static void __dphy_dump(u32 id, struct dsim_regs *regs)
 	/* MD0 */
 	cal_log_info(id, "-[CMD 0 : offset + 0x100]-\n");
 	dpu_print_hex_dump(regs->phy_regs, regs->phy_regs + 0x0300, 0x70);
-	dpu_print_hex_dump(regs->phy_regs, regs->phy_regs + 0x03E0, 0x40);
+	dpu_print_hex_dump(regs->phy_regs, regs->phy_regs + 0x03C0, 0x40);
 	/* MD1 */
 	cal_log_info(id, "-[CMD 1 : offset + 0x100]-\n");
 	dpu_print_hex_dump(regs->phy_regs, regs->phy_regs + 0x0400, 0x70);

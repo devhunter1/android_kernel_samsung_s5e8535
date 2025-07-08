@@ -915,8 +915,10 @@ static int v4l2_smfc_qbuf(struct file *file, void *priv,
 		struct vb2_smfc_buffer *sbuf =
 			container_of(mbuf, typeof(*sbuf), mb);
 		unsigned int index;
+		unsigned int plane_cnt = buf->length > SMFC_MAX_PLANES ?
+			SMFC_MAX_PLANES : buf->length;
 
-		for (index = 0; index < buf->length; index++) {
+		for (index = 0; index < plane_cnt; index++) {
 			sbuf->offset[index] =
 				buf->m.planes[index].data_offset;
 		}

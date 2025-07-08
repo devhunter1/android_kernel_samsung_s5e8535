@@ -1347,6 +1347,11 @@ struct page *f2fs_new_node_page(struct dnode_of_data *dn, unsigned int ofs)
 	if (set_page_dirty(page))
 		dn->node_changed = true;
 
+	if (f2fs_is_fua_write(dn->inode))
+		set_page_private_fua(page);
+	else
+		clear_page_private_fua(page);
+
 	if (f2fs_has_xattr_block(ofs))
 		f2fs_i_xnid_write(dn->inode, dn->nid);
 
@@ -1410,9 +1415,10 @@ static int read_node_page(struct page *page, int op_flags)
 
 	err = f2fs_submit_page_bio(&fio);
 
-	if (!err)
+	if (!err) {
 		f2fs_update_iostat(sbi, FS_NODE_READ_IO, F2FS_BLKSIZE);
-
+		clear_page_private_fua(page);
+	}
 	return err;
 }
 

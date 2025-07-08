@@ -1167,6 +1167,7 @@ void sm5714_usbpd_power_ready(struct device *dev,
 	PDIC_OTP_MODE power_role)
 {
 	struct sm5714_usbpd_data *pd_data = dev_get_drvdata(dev);
+	struct sm5714_usbpd_manager_data *manager = &pd_data->manager;
 #if IS_ENABLED(CONFIG_BATTERY_SAMSUNG)
 	struct sm5714_policy_data *policy = &pd_data->policy;
 	PD_NOTI_ATTACH_TYPEDEF pd_notifier;
@@ -1187,8 +1188,8 @@ void sm5714_usbpd_power_ready(struct device *dev,
 #endif
 			pd_data->pd_noti.sink_status.available_pdo_num = 1;
 			pd_data->pd_noti.sink_status.power_list[1].max_current =
-				pd_data->pd_noti.sink_status.power_list[1].max_current > 1800 ?
-				1800 : pd_data->pd_noti.sink_status.power_list[1].max_current;
+				pd_data->pd_noti.sink_status.power_list[1].max_current > manager->short_cable_current ?
+				manager->short_cable_current : pd_data->pd_noti.sink_status.power_list[1].max_current;
 			pd_data->pd_noti.sink_status.has_apdo = false;
 		}
 #endif
@@ -1325,10 +1326,76 @@ void sm5714_usbpd_inform_event(struct sm5714_usbpd_data *pd_data,
 	}
 }
 
+#ifndef CONFIG_DISABLE_LOCKSCREEN_USB_RESTRICTION
+void sm5714_set_enable_alternate_mode(int mode)
+{
+	struct sm5714_usbpd_data *pd_data = sm5714_g_pd_data;	
+	struct sm5714_usbpd_manager_data *manager = &pd_data->manager;
+	static int check_is_driver_loaded;
+	static int prev_alternate_mode;
+	int data_role = 0;
+
+	if ((mode & ALTERNATE_MODE_NOT_READY) &&
+	    (mode & ALTERNATE_MODE_READY)) {
+		pr_info("%s: mode is invalid!", __func__);
+		return;
+	}
+	if ((mode & ALTERNATE_MODE_START) && (mode & ALTERNATE_MODE_STOP)) {
+		pr_info("%s: mode is invalid!", __func__);
+		return;
+	}
+	if (mode & ALTERNATE_MODE_RESET) {
+		pr_info("%s: mode is reset! check_is_driver_loaded=%d, prev_alternate_mode=%d",
+			__func__, check_is_driver_loaded, prev_alternate_mode);
+		if (check_is_driver_loaded &&
+		    (prev_alternate_mode == ALTERNATE_MODE_START)) {
+
+			pr_info("%s: [No process] alternate mode is reset as start!", __func__);
+			prev_alternate_mode = ALTERNATE_MODE_START;
+		} else if (check_is_driver_loaded &&
+			   (prev_alternate_mode == ALTERNATE_MODE_STOP)) {
+			pr_info("%s: [No process] alternate mode is reset as stop!", __func__);
+			prev_alternate_mode = ALTERNATE_MODE_STOP;
+		} else {
+			;
+		}
+	} else {
+		if (mode & ALTERNATE_MODE_NOT_READY) {
+			check_is_driver_loaded = 0;
+			pr_info("%s: alternate mode is not ready!", __func__);
+		} else if (mode & ALTERNATE_MODE_READY) {
+			check_is_driver_loaded = 1;
+			pr_info("%s: alternate mode is ready!", __func__);
+		} else {
+			;
+		}
+
+		if (mode & ALTERNATE_MODE_START) {
+			pd_data->altmode_enable = 1;
+			prev_alternate_mode = ALTERNATE_MODE_START;
+			pr_info("%s: alternate mode is started!\n", __func__);
+			pd_data->phy_ops.get_data_role(pd_data, &data_role);
+			if (data_role == USBPD_DFP) {
+				manager->alt_sended = 0;
+				manager->vdm_en = 0;
+				pr_info("%s : request vdm for DFP\n", __func__);
+				sm5714_usbpd_vdm_request_enabled(pd_data);
+			}
+		} else if (mode & ALTERNATE_MODE_STOP) {
+			pd_data->altmode_enable = 0;
+			pr_info("%s: alternate mode is stopped!\n", __func__);
+		}
+	}
+}
+#endif
+
 bool sm5714_usbpd_vdm_request_enabled(struct sm5714_usbpd_data *pd_data)
 {
 	struct sm5714_usbpd_manager_data *manager = &pd_data->manager;
 
+#ifndef CONFIG_DISABLE_LOCKSCREEN_USB_RESTRICTION
+	pr_info("%s: alt_sended : %d, vdm_en : %d\n", __func__, manager->alt_sended, manager->vdm_en);
+#endif
 	if (manager->alt_sended == 1 && manager->vdm_en == 1)
 		return true;
 
@@ -2415,6 +2482,11 @@ static int of_sm5714_usbpd_dt(struct sm5714_usbpd_manager_data *_data)
 						"battery,support_vpdo");
 		_data->support_15w_vpdo = of_property_read_bool(np,
 						"battery,support_15w_vpdo");
+		ret = of_property_read_u32(np, "battery,short_cable_current", &_data->short_cable_current);
+		if (ret) {
+			pr_info("%s : short_cable_current is Empty, set as 1800 mA\n", __func__);
+			_data->short_cable_current  = 1800;
+		}
 	}
 #else
 	_data->support_vpdo = false;
@@ -2640,6 +2712,9 @@ int sm5714_usbpd_init(struct device *dev, void *phy_driver_data)
 	pd_data->pd_noti.sink_status.has_apdo = false;
 	pd_data->thermal_state = 0;
 	pd_data->auth_type = AUTH_NONE;
+#ifndef CONFIG_DISABLE_LOCKSCREEN_USB_RESTRICTION
+	pd_data->altmode_enable = 0;
+#endif
 
 #if IS_ENABLED(CONFIG_PDIC_PD30)
 	pd_data->specification_revision = USBPD_REV_30;

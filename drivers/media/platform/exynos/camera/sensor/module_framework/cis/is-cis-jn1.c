@@ -55,24 +55,79 @@ static const u32 *sensor_jn1_dual_sync;
 static u32 sensor_jn1_dual_sync_size;
 
 #if WRITE_SENSOR_CAL_FOR_HW_GGC
+int sensor_jn1_cis_write16_burst(struct i2c_client *client, u16 addr, u8 *val, u32 num)
+{
+	int ret = 0;
+	struct i2c_msg msg[1];
+	u8 *wbuf;
+
+	if (val == NULL) {
+		pr_err("val array is null\n");
+		ret = -ENODEV;
+		goto p_err;
+	}
+
+	if (!client->adapter) {
+		pr_err("Could not find adapter!\n");
+		ret = -ENODEV;
+		goto p_err;
+	}
+
+	wbuf = kmalloc((2 + (num * 2)), GFP_KERNEL);
+	if (!wbuf) {
+		ret = -ENODEV;
+		goto p_err;
+	}
+
+	msg->addr = client->addr;
+	msg->flags = 0;
+	msg->len = 2 + (num * 2);
+	msg->buf = wbuf;
+	wbuf[0] = (addr & 0xFF00) >> 8;
+	wbuf[1] = (addr & 0xFF);
+
+	memcpy(wbuf + 2, val, num * 2);
+
+	ret = is_i2c_transfer(client->adapter, msg, 1);
+	if (ret < 0) {
+		pr_err("i2c transfer fail(%d)", ret);
+		goto p_err_free;
+	}
+
+	kfree(wbuf);
+	return 0;
+
+p_err_free:
+	kfree(wbuf);
+p_err:
+	return ret;
+}
+
 int sensor_jn1_cis_HW_GGC_write(struct v4l2_subdev *subdev)
 {
 	int ret = 0;
-	int i = 0;
 	struct is_cis *cis = sensor_cis_get_cis(subdev);
 
+	ulong cal_addr;
+	u8 *cal_data = NULL;
 	char *rom_cal_buf = NULL;
-	u16 start_addr, data_size, write_data;
+	u16 start_addr, data_size, end_addr;
 
 	ret = is_sec_get_cal_buf(&rom_cal_buf, ROM_ID_REAR);
 	if (ret < 0) {
 		goto p_err;
 	}
 
+	cal_addr = (ulong)rom_cal_buf;
+
 	/* Big Endian */
+	cal_addr += SENSOR_JN1_HW_GGC_CAL_BASE_REAR;
 	start_addr = SENSOR_JN1_HW_GGC_CAL_BASE_REAR;
 	data_size = SENSOR_JN1_HW_GGC_CAL_SIZE;
 	rom_cal_buf += start_addr;
+
+	cal_data = (u8 *)cal_addr;
+	end_addr = start_addr + data_size;
 
 #if SENSOR_JN1_CAL_DEBUG
 	ret = sensor_jn1_cis_cal_dump(SENSOR_JN1_GGC_DUMP_NAME, (char *)rom_cal_buf, (size_t)SENSOR_JN1_HW_GGC_CAL_SIZE);
@@ -83,16 +138,20 @@ int sensor_jn1_cis_HW_GGC_write(struct v4l2_subdev *subdev)
 #endif
 
 	if (rom_cal_buf[0] == 0xFF && rom_cal_buf[1] == 0x00) {
+		cis->ixc_ops->write16(cis->client, 0x6004, 0x0001);
 		cis->ixc_ops->write16(cis->client, 0x6028, 0x2400);
 		cis->ixc_ops->write16(cis->client, 0x602A, 0x0CFC);
-		
-		for (i = 0; i < (data_size/2) ; i++) {
-			write_data = ((rom_cal_buf[2*i] << 8) | rom_cal_buf[2*i + 1]);
-			cis->ixc_ops->write16(cis->client, 0x6F12, write_data);
+
+		ret = sensor_jn1_cis_write16_burst(cis->client, 0x6F12,
+			cal_data, data_size / 2);
+		if (ret < 0) {
+			err("sensor_jn1_cis_write16_burst fail!!");
+			goto p_err;
 		}
 		cis->ixc_ops->write16(cis->client, 0x6028, 0x2400);
 		cis->ixc_ops->write16(cis->client, 0x602A, 0x2138);
 		cis->ixc_ops->write16(cis->client, 0x6F12, 0x4000);
+		cis->ixc_ops->write16(cis->client, 0x6004, 0x0000);
 	} else {
 		err("sensor_jn1_cis_GGC_write skip : (%#x, %#x) \n", rom_cal_buf[0] , rom_cal_buf[1]);
 		goto p_err;
@@ -196,7 +255,9 @@ static int sensor_jn1_cis_group_param_hold_func(struct v4l2_subdev *subdev, unsi
 		goto p_err;
 	}
 
+	I2C_MUTEX_LOCK(cis->i2c_lock);
 	ret = cis->ixc_ops->write8(client, 0x0104, hold);
+	I2C_MUTEX_UNLOCK(cis->i2c_lock);
 	if (ret < 0)
 		goto p_err;
 
@@ -260,7 +321,7 @@ int sensor_jn1_cis_set_global_setting(struct v4l2_subdev *subdev)
 	int ret = 0;
 	struct is_cis *cis = sensor_cis_get_cis(subdev);
 
-	dbg_sensor(1, "[%s] start\n", __func__);
+	info("[%s] start\n", __func__);
 	I2C_MUTEX_LOCK(cis->i2c_lock);
 
 	ret = sensor_cis_set_registers(subdev, sensor_jn1_global, sensor_jn1_global_size);
@@ -270,11 +331,7 @@ int sensor_jn1_cis_set_global_setting(struct v4l2_subdev *subdev)
 		goto p_err_unlock;
 	}
 
-	dbg_sensor(1, "[%s] done\n", __func__);
-
-#if WRITE_SENSOR_CAL_FOR_HW_GGC
-	sensor_jn1_cis_HW_GGC_write(subdev);
-#endif
+	info("[%s] done\n", __func__);
 
 p_err_unlock:
 	I2C_MUTEX_UNLOCK(cis->i2c_lock);
@@ -297,10 +354,14 @@ int sensor_jn1_cis_mode_change(struct v4l2_subdev *subdev, u32 mode)
 
 	cis->mipi_clock_index_cur = CAM_MIPI_NOT_INITIALIZED;
 
-	I2C_MUTEX_LOCK(cis->i2c_lock);
-
 	info("[%s] sensor mode(%d)\n", __func__, mode);
 
+	I2C_MUTEX_LOCK(cis->i2c_lock);
+#if WRITE_SENSOR_CAL_FOR_HW_GGC
+	if (SENSOR_JN1_4SUM_4080x3060_30FPS == mode || SENSOR_JN1_4SUM_4080x2296_30FPS == mode || SENSOR_JN1_4SUM_3200x1800_60FPS == mode) {
+		sensor_jn1_cis_HW_GGC_write(subdev);
+	}
+#endif
 	ret = sensor_cis_set_registers(subdev, mode_info->setfile, mode_info->setfile_size);
 	if (ret < 0) {
 		err("sensor_setfiles fail!!");
@@ -318,7 +379,7 @@ int sensor_jn1_cis_mode_change(struct v4l2_subdev *subdev, u32 mode)
 		 goto p_err_unlock;
 #endif
 
-	dbg_sensor(1, "[%s] mode changed(%d)\n", __func__, mode);
+	info("[%s] mode changed(%d)\n", __func__, mode);
 
 p_err_unlock:
 	I2C_MUTEX_UNLOCK(cis->i2c_lock);
@@ -347,20 +408,20 @@ int sensor_jn1_cis_stream_on(struct v4l2_subdev *subdev)
 		return -EINVAL;
 	}
 
-	//is_vendor_set_mipi_clock(device);
+	is_vendor_set_mipi_clock(device);
 
 	I2C_MUTEX_LOCK(cis->i2c_lock);
 
 	/* Sensor stream on */
 	ret = cis->ixc_ops->write16(cis->client, 0x6028, 0x4000);
 	ret |= cis->ixc_ops->write8(cis->client, 0x0100, 0x01);
+	I2C_MUTEX_UNLOCK(cis->i2c_lock);
 	cis_data->stream_on = true;
 	info("%s done\n", __func__);
 
 	if (IS_ENABLED(DEBUG_SENSOR_TIME))
 		dbg_sensor(1, "[%s] time %ldus", __func__, PABLO_KTIME_US_DELTA_NOW(st));
 
-	I2C_MUTEX_UNLOCK(cis->i2c_lock);
 	return ret;
 }
 
@@ -389,10 +450,9 @@ int sensor_jn1_cis_stream_off(struct v4l2_subdev *subdev)
 	/* Sensor stream off */
 	ret = cis->ixc_ops->write16(cis->client, 0x6028, 0x4000);
 	ret |= cis->ixc_ops->write8(cis->client, 0x0100, 0x00);
+	I2C_MUTEX_UNLOCK(cis->i2c_lock);
 	info("%s done, frame_count(%d)\n", __func__, cur_frame_count);
 
-	I2C_MUTEX_UNLOCK(cis->i2c_lock);
-	
 	if (IS_ENABLED(DEBUG_SENSOR_TIME))
 		dbg_sensor(1, "[%s] time %ldus", __func__, PABLO_KTIME_US_DELTA_NOW(st));
 
@@ -725,15 +785,75 @@ p_err_unlock:
 	return ret;
 }
 
+int sensor_jn1_cis_compensate_gain_for_extremely_br(struct v4l2_subdev *subdev, u32 expo, u32 *again, u32 *dgain)
+{
+	int ret = 0;
+	struct is_cis *cis;
+	cis_shared_data *cis_data;
+
+	u64 vt_pic_clk_freq_khz = 0;
+	u32 line_length_pck = 0;
+	u32 min_fine_int = 0;
+	u16 coarse_int = 0;
+	u32 compensated_again = 0;
+
+	FIMC_BUG(!subdev);
+	FIMC_BUG(!again);
+	FIMC_BUG(!dgain);
+
+	cis = (struct is_cis *)v4l2_get_subdevdata(subdev);
+	if (!cis) {
+		err("cis is NULL");
+		ret = -EINVAL;
+		goto p_err;
+	}
+	cis_data = cis->cis_data;
+
+	vt_pic_clk_freq_khz = cis_data->pclk / 1000;
+	line_length_pck = cis_data->line_length_pck;
+	min_fine_int = cis_data->min_fine_integration_time;
+
+	if (line_length_pck <= 0) {
+		err("[%s] invalid line_length_pck(%d)\n", __func__, line_length_pck);
+		goto p_err;
+	}
+
+	coarse_int = ((expo * vt_pic_clk_freq_khz) / 1000 - min_fine_int) / line_length_pck;
+	if (coarse_int < cis_data->min_coarse_integration_time) {
+		dbg_sensor(1, "[MOD:D:%d] %s, vsync_cnt(%d), long coarse(%d) min(%d)\n", cis->id, __func__,
+			cis_data->sen_vsync_count, coarse_int, cis_data->min_coarse_integration_time);
+		coarse_int = cis_data->min_coarse_integration_time;
+	}
+
+	if (coarse_int <= 100) {
+		compensated_again = (*again * ((expo * vt_pic_clk_freq_khz) / 1000 - min_fine_int)) / (line_length_pck * coarse_int);
+
+		if (compensated_again < cis_data->min_analog_gain[1]) {
+			*again = cis_data->min_analog_gain[1];
+		} else if (*again >= cis_data->max_analog_gain[1]) {
+			*dgain = (*dgain * ((expo * vt_pic_clk_freq_khz) / 1000 - min_fine_int)) / (line_length_pck * coarse_int);
+		} else {
+			*again = compensated_again;
+		}
+
+		dbg_sensor(1, "[%s] exp(%d), again(%d), dgain(%d), coarse_int(%d), compensated_again(%d)\n",
+			__func__, expo, *again, *dgain, coarse_int, compensated_again);
+	}
+
+p_err:
+	return ret;
+}
 
 int sensor_jn1_cis_set_dual_setting(struct v4l2_subdev *subdev, u32 mode)
 {
 	int ret = 0;
-
+	struct is_cis *cis = sensor_cis_get_cis(subdev);
 	info("[%s] sync mode(%d)\n", __func__, mode);
 	switch (mode) {
 	case DUAL_SYNC_MASTER:
+		I2C_MUTEX_LOCK(cis->i2c_lock);
 		ret = sensor_cis_set_registers(subdev, sensor_jn1_dual_sync, sensor_jn1_dual_sync_size);
+		I2C_MUTEX_UNLOCK(cis->i2c_lock);
 		if (ret)
 			err("jn1 dual sync setting fail");
 		break;
@@ -819,6 +939,7 @@ static struct is_cis_ops cis_ops = {
 	.cis_get_digital_gain = sensor_cis_get_digital_gain,
 	.cis_get_min_digital_gain = sensor_cis_get_min_digital_gain,
 	.cis_get_max_digital_gain = sensor_cis_get_max_digital_gain,
+	.cis_compensate_gain_for_extremely_br = sensor_jn1_cis_compensate_gain_for_extremely_br,
 	.cis_calc_dgain_code = sensor_cis_calc_dgain_code,
 	.cis_calc_dgain_permile = sensor_cis_calc_dgain_permile,
 	.cis_compensate_gain_for_extremely_br = sensor_cis_compensate_gain_for_extremely_br,
@@ -841,6 +962,13 @@ static int cis_jn1_probe(struct i2c_client *client,
 	char const *setfile;
 
 	struct device_node *dnode = client->dev.of_node;
+	
+#ifdef USE_CAMERA_ADAPTIVE_MIPI
+	int i;
+	int index;
+	const int *verify_sensor_mode = NULL;
+	int verify_sensor_mode_size = 0;
+#endif
 
 	probe_info("%s: sensor_cis_probe started\n", __func__);	//custom
 	ret = sensor_cis_probe(client,  &(client->dev), &sensor_peri,I2C_TYPE);
@@ -877,6 +1005,32 @@ static int cis_jn1_probe(struct i2c_client *client,
 	sensor_jn1_dual_sync_size = ARRAY_SIZE(sensor_jn1_dual_sync_setfile_A);
 
 	cis->sensor_info = &sensor_jn1_info_A;
+	
+#ifdef USE_CAMERA_ADAPTIVE_MIPI
+	if (strcmp(setfile, "setA") == 0) {
+		cis->mipi_sensor_mode = sensor_jn1_setfile_A_mipi_sensor_mode;
+		cis->mipi_sensor_mode_size = ARRAY_SIZE(sensor_jn1_setfile_A_mipi_sensor_mode);
+		verify_sensor_mode = sensor_jn1_setfile_A_verify_sensor_mode;
+		verify_sensor_mode_size = ARRAY_SIZE(sensor_jn1_setfile_A_verify_sensor_mode);
+	}
+
+	if (cis->vendor_use_adaptive_mipi) {
+		for (i = 0; i < verify_sensor_mode_size; i++) {
+			index = verify_sensor_mode[i];
+	
+			if (index >= cis->mipi_sensor_mode_size || index < 0) {
+				panic("wrong mipi_sensor_mode index");
+				break;
+			}
+
+			if (is_vendor_verify_mipi_channel(cis->mipi_sensor_mode[index].mipi_channel,
+							cis->mipi_sensor_mode[index].mipi_channel_size)) {
+				panic("wrong mipi channel");
+				break;
+			}
+		}
+	}
+#endif
 
 	probe_info("%s done\n", __func__);
 	return ret;

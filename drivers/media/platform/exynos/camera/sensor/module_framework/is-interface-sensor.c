@@ -2109,7 +2109,7 @@ int copy_sensor_ctl(struct is_sensor_interface *itf,
 			sensor_peri->mcu->ois->coef = (u8)shot->uctl.lensUd.oisCoefVal;
 		}
 #endif
-#ifdef CONFIG_CAMERA_VENDER_MCD
+#if defined(CONFIG_CAMERA_VENDER_MCD) || defined(CONFIG_CAMERA_VENDER_MCD_V2)
 		if (sensor_peri->laser_af) {
 			sensor_peri->laser_af->rs_mode = shot->uctl.isModeUd.range_sensor_mode;
 		}

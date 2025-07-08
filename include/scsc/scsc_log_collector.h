@@ -89,7 +89,11 @@ enum scsc_log_chunk_type {
 	SCSC_LOG_CHUNK_INVALID = 255,
 };
 
+#ifdef CONFIG_SCSC_WLAN_HIP4_PROFILING
 #define SCSC_LOG_COLLECT_MAX_SIZE	(16*1024*1024)
+#else
+#define SCSC_LOG_COLLECT_MAX_SIZE	(13*1024*1024)
+#endif
 
 /* ADD Collection codes here for HOST triggers */
 /* Consider moving the definitions to specific services if required */

@@ -38,6 +38,7 @@
 #include <trace/hooks/debug.h>
 
 #define BACKTRACE_CPU_INVALID	(-1)
+#define WDT_CPU_INVALID	(-1)
 
 static struct cpumask cpu_dss_context_saved_mask;
 
@@ -52,6 +53,7 @@ static char *ecc_sel_str[] = {
 /*  Panic core's backtrace logging  */
 static struct dbg_snapshot_backtrace_data *dss_backtrace;
 atomic_t backtrace_cpu = ATOMIC_INIT(BACKTRACE_CPU_INVALID);
+atomic_t wdt_cpu = ATOMIC_INIT(WDT_CPU_INVALID);
 
 static unsigned long smc_pre_reading_ecc_sysreg[4];
 
@@ -487,6 +489,34 @@ static void dbg_snapshot_set_wdt_caller(unsigned long addr)
 		__raw_writeq(addr, header + DSS_OFFSET_WDT_CALLER);
 }
 
+static void dbg_snapshot_set_wdt_msg(unsigned long addr, struct va_format *vaf)
+{
+	struct dbg_snapshot_item *item = (struct dbg_snapshot_item *)
+		dbg_snapshot_get_item_by_index(DSS_ITEM_WDTMSG_ID);
+	struct wdt_info *wdt_info = NULL;
+	u64 ts_nsec = local_clock();
+	int cpu = raw_smp_processor_id();
+
+	if (item) {
+		wdt_info = (struct wdt_info *)item->entry.vaddr;
+		if (wdt_info && !(*wdt_info->caller)) {
+			wdt_info->time = ts_nsec;
+			wdt_info->cpu = cpu;
+			snprintf(wdt_info->caller, sizeof(wdt_info->caller), "%pS", (void *)addr);
+			if (vaf && vaf->fmt)
+				snprintf(wdt_info->msg, sizeof(wdt_info->msg), "%pV", vaf);
+		}
+	}
+}
+
+static void dbg_snapshot_set_wdt_info(void *caller, struct va_format *vaf)
+{
+	unsigned long addr = (unsigned long)caller;
+
+	dbg_snapshot_set_wdt_caller(addr);
+	dbg_snapshot_set_wdt_msg(addr, vaf);
+}
+
 int dbg_snapshot_start_watchdog(int sec)
 {
 	if (dss_soc_ops.start_watchdog)
@@ -496,66 +526,97 @@ int dbg_snapshot_start_watchdog(int sec)
 }
 EXPORT_SYMBOL_GPL(dbg_snapshot_start_watchdog);
 
-int dbg_snapshot_expire_watchdog(void)
+static int dbg_snapshot_expire_watchdog_with_caller(void *caller, struct va_format *vaf)
 {
-	unsigned long addr;
+	unsigned long addr = (unsigned long)caller;
+	int old_cpu, cpu;
 
 	if (!dss_soc_ops.expire_watchdog) {
 		dev_emerg(dss_desc.dev, "There is no wdt functions!\n");
 		return -ENODEV;
 	}
 
-	addr = (unsigned long)return_address(0);
+	cpu = raw_smp_processor_id();
+	old_cpu = atomic_cmpxchg(&wdt_cpu, WDT_CPU_INVALID, cpu);
 
-	dbg_snapshot_set_wdt_caller(addr);
-	dev_emerg(dss_desc.dev, "Caller: %pS, WDTRESET right now!\n", (void *)addr);
+	if (old_cpu == WDT_CPU_INVALID) {
+		dbg_snapshot_set_wdt_info(caller, vaf);
+
+		if (vaf)
+			dev_emerg(dss_desc.dev, "Caller: %pS msg:%pV, WDTRESET right now!\n",
+					(void *)addr, vaf);
+		else
+			dev_emerg(dss_desc.dev, "Caller: %pS msg:none, WDTRESET right now!\n",
+					(void *)addr);
+	} else {
+		dev_emerg(dss_desc.dev, "Caller: %pS, multiple WDTRESET triggered\n",
+				(void *)addr);
+	}
+
 	if (dss_soc_ops.expire_watchdog(3, 0))
 		return -ENODEV;
 	dbg_snapshot_spin_func();
 
 	return -ENODEV;
 }
+
+int dbg_snapshot_expire_watchdog_with_msg(const char *fmt, ...)
+{
+	struct va_format vaf;
+	va_list args;
+	int ret;
+
+	va_start(args, fmt);
+
+	vaf.fmt = fmt;
+	vaf.va = &args;
+	ret = dbg_snapshot_expire_watchdog_with_caller(return_address(0), &vaf);
+	va_end(args);
+
+	return ret;
+}
+EXPORT_SYMBOL_GPL(dbg_snapshot_expire_watchdog_with_msg);
+
+int dbg_snapshot_expire_watchdog(void)
+{
+	return dbg_snapshot_expire_watchdog_with_caller(return_address(0), NULL);
+}
 EXPORT_SYMBOL_GPL(dbg_snapshot_expire_watchdog);
 
 int dbg_snapshot_expire_watchdog_safely(void)
 {
-	unsigned long addr;
-
-	if (!dss_soc_ops.expire_watchdog) {
-		dev_emerg(dss_desc.dev, "There is no wdt functions!\n");
-		return -ENODEV;
-	}
-
 	if (!dss_soc_ops.set_safe_mode)
 		dev_emerg(dss_desc.dev, "There is no safe mode function!\n");
 	else
 		dss_soc_ops.set_safe_mode();
 
-	addr = (unsigned long)return_address(0);
-
-	dbg_snapshot_set_wdt_caller(addr);
-	dev_emerg(dss_desc.dev, "Caller: %pS, WDTRESET right now!\n", (void *)addr);
-	if (dss_soc_ops.expire_watchdog(3, 0))
-		return -ENODEV;
-	dbg_snapshot_spin_func();
-
-	return -ENODEV;
+	return dbg_snapshot_expire_watchdog_with_caller(return_address(0), NULL);
 }
 EXPORT_SYMBOL_GPL(dbg_snapshot_expire_watchdog_safely);
 
 int dbg_snapshot_expire_watchdog_timeout(int tick)
 {
 	unsigned long addr;
+	int old_cpu, cpu;
 
 	if (!dss_soc_ops.expire_watchdog) {
 		dev_emerg(dss_desc.dev, "There is no wdt functions!\n");
 		return -ENODEV;
 	}
 
+	cpu = raw_smp_processor_id();
+	old_cpu = atomic_cmpxchg(&wdt_cpu, WDT_CPU_INVALID, cpu);
 	addr = (unsigned long)return_address(0);
 
-	dbg_snapshot_set_wdt_caller(addr);
-	dev_emerg(dss_desc.dev, "Caller: %pS, WDTRESET right now!\n", (void *)addr);
+	if (old_cpu == WDT_CPU_INVALID) {
+		dbg_snapshot_set_wdt_info(return_address(0), NULL);
+		dev_emerg(dss_desc.dev, "Caller: %pS msg:none, WDTRESET right now!\n",
+				(void *)addr);
+	} else {
+		dev_emerg(dss_desc.dev, "Caller: %pS, multiple WDTRESET triggered\n",
+				(void *)addr);
+	}
+
 	if (dss_soc_ops.expire_watchdog(tick, 0))
 		return -ENODEV;
 
@@ -566,21 +627,30 @@ EXPORT_SYMBOL_GPL(dbg_snapshot_expire_watchdog_timeout);
 int dbg_snapshot_expire_watchdog_timeout_safely(int tick)
 {
 	unsigned long addr;
+	int old_cpu, cpu;
 
 	if (!dss_soc_ops.expire_watchdog) {
 		dev_emerg(dss_desc.dev, "There is no wdt functions!\n");
 		return -ENODEV;
 	}
 
+	cpu = raw_smp_processor_id();
+	old_cpu = atomic_cmpxchg(&wdt_cpu, WDT_CPU_INVALID, cpu);
+	addr = (unsigned long)return_address(0);
+
 	if (!dss_soc_ops.set_safe_mode)
 		dev_emerg(dss_desc.dev, "There is no safe mode function!\n");
 	else
 		dss_soc_ops.set_safe_mode();
 
-	addr = (unsigned long)return_address(0);
+	if (old_cpu == WDT_CPU_INVALID) {
+		dbg_snapshot_set_wdt_info(return_address(0), NULL);
+		dev_emerg(dss_desc.dev, "Caller: %pS msg:none, WDTRESET right now!\n", (void *)addr);
+	} else {
+		dev_emerg(dss_desc.dev, "Caller: %pS, multiple WDTRESET triggered\n",
+				(void *)addr);
+	}
 
-	dbg_snapshot_set_wdt_caller(addr);
-	dev_emerg(dss_desc.dev, "Caller: %pS, WDTRESET right now!\n", (void *)addr);
 	if (dss_soc_ops.expire_watchdog(tick, 0))
 		return -ENODEV;
 
@@ -1247,7 +1317,7 @@ void dbg_snapshot_do_dpm_policy(unsigned int policy)
 		break;
 	case GO_WATCHDOG_ID:
 	case GO_S2D_ID:
-		if (dbg_snapshot_expire_watchdog())
+		if (dbg_snapshot_expire_watchdog_with_caller(return_address(0), NULL))
 			panic("WDT rst fail for s2d, wdt device not probed");
 		dbg_snapshot_spin_func();
 		break;
@@ -1319,7 +1389,6 @@ static inline bool is_event_supported(unsigned int type, unsigned int code)
 			code == dss_desc.trigger_key);
 }
 
-#if !IS_ENABLED(CONFIG_SEC_KEY_NOTIFIER)
 static void dbg_snanpshot_event(struct input_handle *handle, unsigned int type,
 		unsigned int code, int value)
 {
@@ -1329,6 +1398,11 @@ static void dbg_snanpshot_event(struct input_handle *handle, unsigned int type,
 
 	if (!is_event_supported(type, code))
 		return;
+
+	if (!dbg_snapshot_is_scratch()) {
+		dev_info(dss_desc.dev, "KEY event happend, but scratch is not set\n");
+		return;
+	}
 
 	dev_info(dss_desc.dev, "KEY(%d) %s\n",
 			code, value ? "pressed" : "released");
@@ -1411,7 +1485,6 @@ static struct input_handler dbg_snapshot_input_handler = {
 	.name		= "dss_input_handler",
 	.id_table	= dbg_snanpshot_ids,
 };
-#endif
 
 static void set_smc_pre_reading_ecc_sysreg(struct device *dev)
 {
@@ -1461,10 +1534,8 @@ void dbg_snapshot_init_utils(struct device *dev)
 	atomic_notifier_chain_register(&panic_notifier_list, &nb_pre_panic_block);
 	atomic_notifier_chain_register(&panic_notifier_list, &nb_post_panic_block);
 	register_trace_android_vh_ipi_stop(dbg_snapshot_ipi_stop, NULL);
-#if !IS_ENABLED(CONFIG_SEC_KEY_NOTIFIER)
 	if (input_register_handler(&dbg_snapshot_input_handler))
 		dev_info(dev, "skip registering input handler\n");
-#endif
 
 	smp_call_function(dbg_snapshot_save_system, NULL, 1);
 	dbg_snapshot_save_system(NULL);

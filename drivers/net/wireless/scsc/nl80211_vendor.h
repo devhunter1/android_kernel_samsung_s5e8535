@@ -91,6 +91,7 @@
 #define SLSI_WIFI_HAL_FEATURE_CONFIG_NDO         0x200000      /* ND offload */
 #define SLSI_WIFI_HAL_FEATURE_CONTROL_ROAMING    0x800000      /* Enable/Disable firmware roaming macro */
 #define SLSI_WIFI_HAL_FEATURE_SCAN_RAND          0x2000000     /* Random MAC & Probe seq */
+#define SLSI_WIFI_HAL_FEATURE_DYNAMIC_SET_MAC    0x10000000    /* Support changing MAC address without iface reset(down and up) */
 #define SLSI_WIFI_HAL_FEATURE_LOW_LATENCY        0x40000000    /* Low Latency modes */
 #define SLSI_WIFI_HAL_FEATURE_P2P_RAND_MAC       0x80000000    /* Random P2P MAC */
 
@@ -113,9 +114,11 @@
 #define SLSI_WIFI_ROAMING_SEARCH_REASON_EMERGENCY             5
 #define SLSI_WIFI_ROAMING_SEARCH_REASON_IDLE                  6
 #define SLSI_WIFI_ROAMING_SEARCH_REASON_WTC                   7
-#define SLSI_WIFI_ROAMING_SEARCH_REASON_INACTIVITY_TIMER      8
-#define SLSI_WIFI_ROAMING_SEARCH_REASON_SCAN_TIMER            9
-#define SLSI_WIFI_ROAMING_SEARCH_REASON_BT_COEX               10
+#define SLSI_WIFI_ROAMING_SEARCH_REASON_BT_COEX               8
+
+#define SLSI_WIFI_RTT_RESULT_MAX_ENTRY	8
+#define SLSI_WIFI_RTT_RESULT_ID		0xdd
+#define SLSI_WIFI_RTT_RESULT_LENGTH	0x30
 
 enum slsi_roaming_trigger_event_value {
 	SLSI_SOFT_ROAMING_TRIGGER_EVENT_DEFAULT,
@@ -346,6 +349,9 @@ enum lls_attribute {
 	LLS_ATTRIBUTE_SET_AGGR_STATISTICS_GATHERING,
 	LLS_ATTRIBUTE_CLEAR_STOP_REQUEST_MASK,
 	LLS_ATTRIBUTE_CLEAR_STOP_REQUEST,
+	LLS_ATTRIBUTE_STATS_VERSION,
+	LLS_ATTRIBUTE_GET_STATS_TYPE,
+	LLS_ATTRIBUTE_GET_STATS_STRUCT,
 	LLS_ATTRIBUTE_MAX
 };
 
@@ -381,6 +387,7 @@ enum slsi_hal_vendor_subcmds {
 	SLSI_NL80211_VENDOR_SUBCMD_SET_ROAMING_STATE,
 	SLSI_NL80211_VENDOR_SUBCMD_SET_LATENCY_MODE,
 	SLSI_NL80211_VENDOR_SUBCMD_GET_USABLE_CHANNELS,
+	SLSI_NL80211_VENDOR_SUBCMD_SET_DTIM_CONFIG,
 	SLSI_NL80211_VENDOR_SUBCMD_SELECT_TX_POWER_SCENARIO,
 	SLSI_NL80211_VENDOR_SUBCMD_RESET_TX_POWER_SCENARIO,
 	SLSI_NL80211_VENDOR_SUBCMD_RTT_GET_CAPABILITIES = SLSI_NL80211_RTT_SUBCMD_RANGE_START,
@@ -720,6 +727,11 @@ enum slsi_uc_filter {
 	SLSI_UC_FILTER_CELLULAR_COEX = 1 << 0,
 	SLSI_UC_FILTER_CONCURRENCY = 1 << 1,
 	SLSI_UC_FILTER_NAN_INSTANT_MODE = 1 << 2
+};
+
+enum wifi_dtim_config_attr {
+	SLSI_VENDOR_ATTR_DTIM_MULTIPLIER = 1,
+	SLSI_VENDOR_ATTR_DTIM_MAX
 };
 
 /* Format of information elements found in the beacon */
@@ -1196,4 +1208,12 @@ static inline enum slsi_lls_traffic_ac slsi_fapi_to_android_traffic_q(enum slsi_
 	}
 }
 
+#if defined(CONFIG_SCSC_WLAN_TAS)
+void slsi_tas_notify_wifi_status(bool enabled);
+int slsi_tas_notify_sar_ind(struct slsi_dev *sdev, struct net_device *dev, struct sk_buff *skb);
+int slsi_tas_notify_sar_limit_upper(struct slsi_dev *sdev, struct net_device *dev, struct sk_buff *skb);
+int slsi_tas_notify_sar_target(struct slsi_dev *sdev, struct net_device *dev, struct sk_buff *skb);
+void slsi_tas_nl_init(void);
+void slsi_tas_nl_deinit(void);
+#endif
 #endif

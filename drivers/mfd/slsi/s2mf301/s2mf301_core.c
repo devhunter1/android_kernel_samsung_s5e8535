@@ -105,6 +105,26 @@ int s2mf301_read_word(struct i2c_client *i2c, u8 reg)
 }
 EXPORT_SYMBOL_GPL(s2mf301_read_word);
 
+int s2mf301_atomic_write(struct i2c_client *i2c, u8 reg[], u8 value[], int count)
+{
+	struct s2mf301_dev *s2mf301 = i2c_get_clientdata(i2c);
+	int ret;
+	int i;
+
+	mutex_lock(&s2mf301->i2c_lock);
+	for(i = 0; i < count; i++) {
+		ret = i2c_smbus_write_byte_data(i2c, reg[i], value[i]);
+		if (ret < 0) {
+			pr_err("%s:%s reg(0x%x), ret(%d)\n", MFD_DEV_NAME_, __func__, reg[i], ret);
+			break;
+		}
+	}
+	mutex_unlock(&s2mf301->i2c_lock);
+
+	return ret;
+}
+EXPORT_SYMBOL_GPL(s2mf301_atomic_write);
+
 int s2mf301_write_reg(struct i2c_client *i2c, u8 reg, u8 value)
 {
 	struct s2mf301_dev *s2mf301 = i2c_get_clientdata(i2c);

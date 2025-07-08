@@ -5088,7 +5088,12 @@ hub_port_init(struct usb_hub *hub, struct usb_device *udev, int port1,
 				retval = -ENODEV;
 				goto fail;
 			}
-
+#ifdef CONFIG_USB_AUDIO_ENHANCED_DETECT_TIME
+			if (retries == 0)
+				trstrcy = 10;
+			else
+				trstrcy = 50;
+#endif
 			retval = hub_port_reset(hub, port1, udev, delay, false);
 			if (retval < 0)		/* error or disconnect */
 				goto fail;
@@ -5099,9 +5104,13 @@ hub_port_init(struct usb_hub *hub, struct usb_device *udev, int port1,
 				goto fail;
 			}
 			if (maxp0 < 0) {
-				if (maxp0 != -ENODEV)
+				if (maxp0 != -ENODEV) {
 					dev_err(&udev->dev, "device descriptor read/64, error %d\n",
 							maxp0);
+#if IS_ENABLED(CONFIG_USB_HOST_CERTIFICATION)
+					send_usb_host_certi_uevent(hub->intfdev, USB_HOST_CERTI_NO_RESPONSE);
+#endif
+				}
 				retval = maxp0;
 				continue;
 			}
@@ -5168,10 +5177,16 @@ hub_port_init(struct usb_hub *hub, struct usb_device *udev, int port1,
 		maxp0 = get_bMaxPacketSize0(udev, buf, 8, retries == 0);
 		if (maxp0 < 0) {
 			retval = maxp0;
-			if (retval != -ENODEV)
+			if (retval != -ENODEV) {
 				dev_err(&udev->dev,
 					"device descriptor read/8, error %d\n",
 					retval);
+#if IS_ENABLED(CONFIG_USB_HOST_CERTIFICATION)
+				send_usb_host_certi_uevent(hub->intfdev, USB_HOST_CERTI_NO_RESPONSE);
+#endif
+			}
+			if (retval >= 0)
+				retval = -EMSGSIZE;
 		} else {
 			u32 delay;
 
@@ -5232,9 +5247,13 @@ hub_port_init(struct usb_hub *hub, struct usb_device *udev, int port1,
 	descr = usb_get_device_descriptor(udev);
 	if (IS_ERR(descr)) {
 		retval = PTR_ERR(descr);
-		if (retval != -ENODEV)
+		if (retval != -ENODEV) {
 			dev_err(&udev->dev, "device descriptor read/all, error %d\n",
 					retval);
+#if IS_ENABLED(CONFIG_USB_HOST_CERTIFICATION)
+			send_usb_host_certi_uevent(hub->intfdev, USB_HOST_CERTI_NO_RESPONSE);
+#endif
+		}
 		goto fail;
 	}
 	if (initial)
@@ -5252,6 +5271,9 @@ hub_port_init(struct usb_hub *hub, struct usb_device *udev, int port1,
 	if ((udev->speed >= USB_SPEED_SUPER) &&
 			(le16_to_cpu(udev->descriptor.bcdUSB) < 0x0300)) {
 		dev_err(&udev->dev, "got a wrong device descriptor, warm reset device\n");
+#ifdef CONFIG_USB_AUDIO_ENHANCED_DETECT_TIME
+		trstrcy = 50;
+#endif
 		hub_port_reset(hub, port1, udev, HUB_BH_RESET_TIME, true);
 		retval = -EINVAL;
 		goto fail;

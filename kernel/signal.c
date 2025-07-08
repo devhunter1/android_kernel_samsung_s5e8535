@@ -57,6 +57,10 @@
 #include <asm/cacheflush.h>
 #include <asm/syscall.h>	/* for syscall_get_* */
 
+#ifdef CONFIG_SAMSUNG_FREECESS
+#include <linux/freecess.h>
+#endif
+
 #undef CREATE_TRACE_POINTS
 #include <trace/hooks/signal.h>
 #include <trace/hooks/dtask.h>
@@ -1299,6 +1303,18 @@ int do_send_sig_info(int sig, struct kernel_siginfo *info, struct task_struct *p
 	unsigned long flags;
 	int ret = -ESRCH;
 	trace_android_vh_do_send_sig_info(sig, current, p);
+
+#ifdef CONFIG_SAMSUNG_FREECESS
+	/*
+	 * System will send SIGIO to the app that locked the file when other apps access the file.
+	 * Report SIGIO to prevent other apps from getting stuck
+	 */
+	 if ((sig == SIGKILL || sig == SIGTERM || sig == SIGABRT || sig == SIGQUIT || sig == SIGIO)) {
+ 		/* Report pid if signal is fatal */
+ 		sig_report(p, sig != SIGIO);
+ 	}
+#endif
+
 	if (lock_task_sighand(p, &flags)) {
 		ret = send_signal(sig, info, p, type);
 		unlock_task_sighand(p, &flags);

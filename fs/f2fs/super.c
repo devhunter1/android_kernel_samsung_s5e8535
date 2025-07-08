@@ -2920,6 +2920,7 @@ out:
 	return ret;
 }
 
+atomic_t f2fs_check_pkt_flag;
 int f2fs_quota_sync(struct super_block *sb, int type)
 {
 	struct f2fs_sb_info *sbi = F2FS_SB(sb);
@@ -2927,6 +2928,7 @@ int f2fs_quota_sync(struct super_block *sb, int type)
 	int cnt;
 	int ret = 0;
 
+	atomic_add(1, &f2fs_check_pkt_flag);
 	/*
 	 * Now when everything is written we can discard the pagecache so
 	 * that userspace sees the changes.
@@ -2965,6 +2967,8 @@ int f2fs_quota_sync(struct super_block *sb, int type)
 		if (ret)
 			break;
 	}
+	atomic_sub(1, &f2fs_check_pkt_flag);
+
 	return ret;
 }
 

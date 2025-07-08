@@ -15,6 +15,7 @@ config SND_SOC_SAMSUNG_SLIF_VERSION
 	default 0x10101 if SOC_S5E8825
 	default 0x10102 if SOC_S5E9935
 	default 0x10102 if SOC_S5E8835
+	default 0x10102 if SOC_S5E8535
 	help
 	  Version of Serial LIF IP.
 	  Value = 0x10000 * major + 0x100 * minor + rev.

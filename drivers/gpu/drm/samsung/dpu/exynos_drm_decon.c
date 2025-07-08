@@ -521,12 +521,10 @@ static void decon_check_display_config(struct exynos_drm_crtc *exynos_crtc,
 	const struct drm_connector_state *new_conn_state;
 	struct exynos_drm_connector_state *new_exynos_conn_state;
 	struct drm_crtc_state *crtc_state = &new_exynos_crtc_state->base;
-	struct dsim_device *dsim = NULL;
 	struct decon_device *decon = exynos_crtc->ctx;
 
 	if ((__is_recovery_supported(decon) && __is_recovery_begin(decon)) ||
-			(new_exynos_crtc_state->seamless_modeset &&
-			 new_exynos_crtc_state->modeset_only) ||
+			 new_exynos_crtc_state->modeset_only ||
 			(!crtc_state->planes_changed && (crtc_state->plane_mask != 0)))
 				new_exynos_crtc_state->skip_frameupdate = true;
 
@@ -555,8 +553,7 @@ static void decon_check_display_config(struct exynos_drm_crtc *exynos_crtc,
 	if (!crtc_state->active)
 		return;
 
-	dsim = decon_get_dsim(decon);
-	if (crtc_needs_colormap(crtc_state) && !dsim_is_fb_reserved(dsim))
+	if (crtc_needs_colormap(crtc_state))
 		new_exynos_crtc_state->need_colormap = true;
 }
 
@@ -861,6 +858,7 @@ static void decon_atomic_flush(struct exynos_drm_crtc *exynos_crtc,
 					to_exynos_crtc_state(new_crtc_state);
 	struct exynos_drm_crtc_state *old_exynos_crtc_state =
 					to_exynos_crtc_state(old_crtc_state);
+	struct dsim_device *dsim = NULL;
 
 	decon_debug(decon, "+\n");
 
@@ -869,7 +867,8 @@ static void decon_atomic_flush(struct exynos_drm_crtc *exynos_crtc,
 	else if (old_exynos_crtc_state->wb_type == EXYNOS_WB_CWB)
 		decon_reg_set_cwb_enable(decon->id, false);
 
-	if (new_exynos_crtc_state->need_colormap) {
+	dsim = decon_get_dsim(decon);
+	if (new_exynos_crtc_state->need_colormap && !dsim_is_fb_reserved(dsim)) {
 		const int win_id = decon_get_win_id(new_crtc_state, 0);
 
 		if (win_id < 0) {
@@ -891,6 +890,16 @@ static void decon_atomic_flush(struct exynos_drm_crtc *exynos_crtc,
 
 	if (new_exynos_crtc_state->seamless_modeset)
 		decon_seamless_set_mode(new_crtc_state, old_crtc_state->state);
+
+	if (new_exynos_crtc_state->modeset_only) {
+		int win_id;
+		const unsigned long win_mask =
+			new_exynos_crtc_state->reserved_win_mask;
+
+		for_each_set_bit(win_id, &win_mask, MAX_WIN_PER_DECON)
+			decon_reg_set_win_enable(decon->id, win_id, 0);
+		decon_info(decon, "modeset_only\n");
+	}
 
 	/* only for video mode tui */
 	exynos_tui_sec_win_shadow_update_req(decon,
@@ -1300,16 +1309,6 @@ static void decon_mode_set(struct exynos_drm_crtc *crtc,
 		}
 	}
 #endif
-
-	if (new_exynos_crtc_state->modeset_only) {
-		int win_id;
-		const unsigned long win_mask =
-			new_exynos_crtc_state->reserved_win_mask;
-
-		for_each_set_bit(win_id, &win_mask, MAX_WIN_PER_DECON)
-			decon_reg_set_win_enable(decon->id, win_id, 0);
-		decon_info(decon, "modeset_only\n");
-	}
 }
 
 #if IS_ENABLED(CONFIG_EXYNOS_PD)
