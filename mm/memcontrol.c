@@ -1215,7 +1215,6 @@ int mem_cgroup_scan_tasks(struct mem_cgroup *memcg,
 {
 	struct mem_cgroup *iter;
 	int ret = 0;
-	int i = 0;
 
 	BUG_ON(memcg == root_mem_cgroup);
 
@@ -1225,10 +1224,9 @@ int mem_cgroup_scan_tasks(struct mem_cgroup *memcg,
 
 		css_task_iter_start(&iter->css, CSS_TASK_ITER_PROCS, &it);
 		while (!ret && (task = css_task_iter_next(&it))) {
-			/* Avoid potential softlockup warning */
-			if ((++i & 1023) == 0)
-				cond_resched();
 			ret = fn(task, arg);
+			/* Avoid potential softlockup warning */
+			cond_resched();
 		}
 		css_task_iter_end(&it);
 		if (ret) {
@@ -1322,8 +1320,16 @@ void do_traversal_all_lruvec(void)
 		memcg = mem_cgroup_iter(NULL, NULL, NULL);
 		do {
 			struct lruvec *lruvec = mem_cgroup_lruvec(memcg, pgdat);
+			bool stop = false;
 
 			trace_android_vh_do_traversal_lruvec(lruvec);
+
+			trace_android_rvh_do_traversal_lruvec_ex(memcg, lruvec,
+								 &stop);
+			if (stop) {
+				mem_cgroup_iter_break(NULL, memcg);
+				break;
+			}
 
 			memcg = mem_cgroup_iter(NULL, memcg, NULL);
 		} while (memcg);
