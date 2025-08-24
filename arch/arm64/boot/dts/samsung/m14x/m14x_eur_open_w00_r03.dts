@@ -4043,7 +4043,6 @@
 				focaltech,display-coords = <0x00 0x00 0x438 0x968>;
 				sec,firmware_name = "\0\0\0\0\0ft8720_m14x.bin";
 				enable_sysinput_enabled;
-				support_dex;
 				sec,lcdid1-gpio = <0xffffffff 0x00 0x00>;
 				sec,lcdid2-gpio = <0xffffffff 0x00 0x00>;
 				sec,lcdid3-gpio = <0xffffffff 0x02 0x00>;
