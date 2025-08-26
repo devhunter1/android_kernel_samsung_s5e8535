@@ -182,6 +182,7 @@ struct fts_ts_platform_data {
 	bool support_dex;
 	bool scan_off_when_cover_closed;
 	bool enable_vbus_notifier;
+	bool support_spay;
 	const char *ramtest_name;
 };
 

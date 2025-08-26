@@ -1904,6 +1904,12 @@ static void spay_enable(void *device_data)
 
 	sec_cmd_set_default_result(sec);
 
+	if (!ts_data->pdata->support_spay) {
+		snprintf(buff, sizeof(buff), "NA");
+		sec->cmd_state = SEC_CMD_STATUS_NOT_APPLICABLE;
+		goto out;
+	}
+
 	if (sec->cmd_param[0] < 0 || sec->cmd_param[0] > 1) {
 		snprintf(buff, sizeof(buff), "NG");
 		sec->cmd_state = SEC_CMD_STATUS_FAIL;

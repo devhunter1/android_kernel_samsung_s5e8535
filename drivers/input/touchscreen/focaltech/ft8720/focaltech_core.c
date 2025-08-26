@@ -1399,10 +1399,13 @@ int fts_ctrl_lcd_reset_regulator(struct fts_ts_data *ts, bool on)
 		return ret;
 
 	if (ts->pdata->name_lcd_rst) {
-		regulator_lcd_rst = regulator_get(NULL, ts->pdata->name_lcd_rst);
-		if (IS_ERR(regulator_lcd_rst)) {
-			FTS_ERROR("Failed to get regulator_lcd_rst regulator.");
-			goto error;
+		if (IS_ERR_OR_NULL(regulator_lcd_rst)) {
+			regulator_lcd_rst = devm_regulator_get(ts->dev, ts->pdata->name_lcd_rst);
+			FTS_INFO("get regulator_lcd_rst");
+			if (IS_ERR(regulator_lcd_rst)) {
+				FTS_ERROR("Failed to get regulator_lcd_rst regulator.");
+				goto error;
+			}
 		}
 	}
 
@@ -1443,27 +1446,39 @@ int fts_ctrl_lcd_regulators(struct fts_ts_data *ts, bool on)
 		return ret;
 
 	if (ts->pdata->name_lcd_vddi) {
-		regulator_lcd_vddi = regulator_get(NULL, ts->pdata->name_lcd_vddi);
-		if (IS_ERR(regulator_lcd_vddi))
-			FTS_ERROR("Failed to get regulator_lcd_vddi regulator.");
+		if (IS_ERR_OR_NULL(regulator_lcd_vddi)) {
+			regulator_lcd_vddi = devm_regulator_get(ts->dev, ts->pdata->name_lcd_vddi);
+			FTS_INFO("get regulator_lcd_vddi");
+			if (IS_ERR(regulator_lcd_vddi))
+				FTS_ERROR("Failed to get regulator_lcd_vddi regulator.");
+		}
 	}
 
 	if (ts->pdata->name_lcd_bl_en) {
-		regulator_lcd_bl_en = regulator_get(NULL, ts->pdata->name_lcd_bl_en);
-		if (IS_ERR(regulator_lcd_bl_en))
-			FTS_ERROR("Failed to get regulator_lcd_bl_en regulator.");
+		if (IS_ERR_OR_NULL(regulator_lcd_bl_en)) {
+			FTS_INFO("get regulator_lcd_bl_en");
+			regulator_lcd_bl_en = devm_regulator_get(ts->dev, ts->pdata->name_lcd_bl_en);
+			if (IS_ERR(regulator_lcd_bl_en))
+				FTS_ERROR("Failed to get regulator_lcd_bl_en regulator.");
+		}
 	}
 
 	if (ts->pdata->name_lcd_vsp) {
-		regulator_lcd_vsp = regulator_get(NULL, ts->pdata->name_lcd_vsp);
-		if (IS_ERR(regulator_lcd_vsp))
-			FTS_ERROR("Failed to get regulator_lcd_vsp regulator.");
+		if (IS_ERR_OR_NULL(regulator_lcd_vsp)) {
+			FTS_INFO("get regulator_lcd_vsp");
+			regulator_lcd_vsp = devm_regulator_get(ts->dev, ts->pdata->name_lcd_vsp);
+			if (IS_ERR(regulator_lcd_vsp))
+				FTS_ERROR("Failed to get regulator_lcd_vsp regulator.");
+		}
 	}
 
 	if (ts->pdata->name_lcd_vsn) {
-		regulator_lcd_vsn = regulator_get(NULL, ts->pdata->name_lcd_vsn);
-		if (IS_ERR(regulator_lcd_vsn))
-			FTS_ERROR("Failed to get regulator_lcd_vsn regulator.");
+		if (IS_ERR_OR_NULL(regulator_lcd_vsn)) {
+			FTS_INFO("get regulator_lcd_vsn");
+			regulator_lcd_vsn = devm_regulator_get(ts->dev, ts->pdata->name_lcd_vsn);
+			if (IS_ERR(regulator_lcd_vsn))
+				FTS_ERROR("Failed to get regulator_lcd_vsn regulator.");
+		}
 	}
 /*
 	FTS_INFO("s: [BEFORE] vddi:%d, bl_en:%d, vsp:%d, vsn:%d", on ? "on" : "off",
@@ -2213,6 +2228,8 @@ static int fts_parse_dt(struct device *dev, struct fts_ts_platform_data *pdata)
 	FTS_INFO("scan off when cover closed %s", pdata->scan_off_when_cover_closed ? "ON" : "OFF");
 	pdata->enable_vbus_notifier = of_property_read_bool(np, "enable_vbus_notifier");
 	FTS_INFO("enable vbus notifier %s", pdata->enable_vbus_notifier ? "ON" : "OFF");
+	pdata->support_spay = of_property_read_bool(np, "support_spay");
+	FTS_INFO("support spay %s", pdata->support_spay ? "ON" : "OFF");
 
 	if (of_property_read_string(np, "sec,name_lcd_rst", &pdata->name_lcd_rst)) {
 		FTS_ERROR("Failed to get name_lcd_rst property");
