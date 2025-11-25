@@ -69,6 +69,7 @@ security/samsung/defex_lsm/pack_rules
 security/samsung/defex_lsm/cert/pubkey_eng.der
 security/samsung/defex_lsm/cert/pubkey_user.der
 security/samsung/defex_lsm/defex_packed_rules.inc
+kernel_build/
 *.lzo
 *.mod
 *.mod.c
