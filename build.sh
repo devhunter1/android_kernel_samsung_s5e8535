@@ -1,8 +1,8 @@
 #!/bin/bash
 
-if [ ! -d "$pwd/kernel_build" ] || [ -z "$(ls -A $pwd/kernel_build)" ]; then
-    echo "kernel_build directory is missing or empty. cloning from submodule"
-    git submodule update --init
+if [ ! -d "$PWD/kernel_build" ] || [ -z "$(ls -A "$PWD/kernel_build")" ]; then
+    echo "kernel_build directory is missing or empty. cloning ..."
+    git clone https://github.com/s5e8535/kernel_build_script.git kernel_build --depth=1
 fi
 
 if [ -z "$DEVICE" ]; then
