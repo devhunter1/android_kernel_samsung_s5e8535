@@ -10,3 +10,4 @@ ccflags-$(CONFIG_SAMSUNG_TUI)	+= -Idrivers/misc/tui
 obj-$(CONFIG_TOUCHSCREEN_NOVATEK_NT36523_SPI) += $(TARGET).o
 
 ccflags-y += -Wformat
+ccflags-y += $(call cc-disable-warning, implicit-enum-enum-cast)
