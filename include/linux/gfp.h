@@ -556,6 +556,10 @@ unsigned long __alloc_pages_bulk(gfp_t gfp, int preferred_nid,
 				struct list_head *page_list,
 				struct page **page_array);
 
+unsigned long alloc_pages_bulk_array_mempolicy(gfp_t gfp,
+				unsigned long nr_pages,
+				struct page **page_array);
+
 /* Bulk allocate order-0 pages */
 static inline unsigned long
 alloc_pages_bulk_list(gfp_t gfp, unsigned long nr_pages, struct list_head *list)
@@ -714,5 +718,24 @@ void free_contig_range(unsigned long pfn, unsigned long nr_pages);
 /* CMA stuff */
 extern void init_cma_reserved_pageblock(struct page *page);
 #endif
+
+#ifdef CONFIG_HPA
+int alloc_pages_highorder_except(int order, struct page **pages, int nents,
+				 phys_addr_t exception_areas[][2],
+				 int nr_exception);
+#else
+static inline int alloc_pages_highorder_except(int order,
+					       struct page **pages, int nents,
+					       phys_addr_t exception_areas[][2],
+					       int nr_exception)
+{
+	return -ENOENT;
+}
+#endif
+static inline int alloc_pages_highorder(int order, struct page **pages,
+					int nents)
+{
+	return alloc_pages_highorder_except(order, pages, nents, NULL, 0);
+}
 
 #endif /* __LINUX_GFP_H */

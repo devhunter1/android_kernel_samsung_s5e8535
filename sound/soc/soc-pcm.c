@@ -2193,6 +2193,7 @@ int dpcm_be_dai_trigger(struct snd_soc_pcm_runtime *fe, int stream,
 			if (be->dpcm_be_start[stream] != 0)
 				goto next;
 
+
 			ret = soc_pcm_trigger(be_substream, cmd);
 			if (ret) {
 				if (be->dpcm[stream].state == SND_SOC_DPCM_STATE_START)

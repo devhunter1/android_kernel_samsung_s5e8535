@@ -115,6 +115,7 @@
 #include <trace/hooks/delayacct.h>
 #include <trace/hooks/tmpfile.h>
 #include <trace/hooks/fuse.h>
+#include <trace/hooks/mz.h>
 
 /*
  * Export tracepoints that act as a bare tracehook (ie: have no trace event
@@ -547,3 +548,5 @@ EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_should_fault_around);
 EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_do_read_fault);
 EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_filemap_read);
 EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_filemap_map_pages);
+EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_set_tsk_need_resched_lazy);
+EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_mz_exit);

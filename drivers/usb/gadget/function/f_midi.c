@@ -1050,11 +1050,15 @@ static int f_midi_bind(struct usb_configuration *c, struct usb_function *f)
 
 	kfree(midi_function);
 
+	bulk_in_desc.wMaxPacketSize = 0;
+	bulk_out_desc.wMaxPacketSize = 0;
 	return 0;
 
 fail_f_midi:
 	kfree(midi_function);
 	usb_free_all_descriptors(f);
+	bulk_in_desc.wMaxPacketSize = 0;
+	bulk_out_desc.wMaxPacketSize = 0;
 fail:
 	f_midi_unregister_card(midi);
 fail_register:
