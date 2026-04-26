@@ -1,3 +1,8 @@
+obj-$(CONFIG_DIRECT_CHARGING)		+= sec-direct-charger.o
+sec-direct-charger-$(CONFIG_DIRECT_CHARGING)	+= sb_pass_through.o sec_direct_charger.o
+
+ccflags-y := -Wformat
+
 obj-$(CONFIG_SEC_PD)				+= sec_pd.o
 obj-$(CONFIG_BATTERY_SAMSUNG)		+= sb_wireless.o
 
