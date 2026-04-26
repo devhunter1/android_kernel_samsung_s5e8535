@@ -234,6 +234,7 @@ obj-y += mfd/sm/sm5714/ # ADDED BY LEGO AUTOMATICALLY: DO NOT SUBMIT
 obj-y += input/touchscreen/novatek/nt36523_spi/ # ADDED BY LEGO AUTOMATICALLY: DO NOT SUBMIT
 obj-y += input/touchscreen/ovt/td4150_spi/ # ADDED BY LEGO AUTOMATICALLY: DO NOT SUBMIT
 obj-y += input/touchscreen/ilitek/ili9881x/ # ADDED BY LEGO AUTOMATICALLY: DO NOT SUBMIT
+obj-y += input/touchscreen/focaltech/ft8720/ # ADDED BY LEGO AUTOMATICALLY: DO NOT SUBMIT
 obj-y += sensors_lego/ # ADDED BY LEGO AUTOMATICALLY: DO NOT SUBMIT
 obj-y += battery/common/ # ADDED BY LEGO AUTOMATICALLY: DO NOT SUBMIT
 obj-y += samsung/pm/sec_thermistor/ # ADDED BY LEGO AUTOMATICALLY: DO NOT SUBMIT
