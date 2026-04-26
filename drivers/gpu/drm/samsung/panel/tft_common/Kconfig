@@ -34,3 +34,21 @@ menuconfig USDM_PANEL_ILI7807_A14X_02
 		This enables ILI7807_A14X_02 DDI dependent panel drivers of
 		common panel driver. say Y, if you have a panel based on
 		the ILI7807_A14X_02 DDI.
+
+menuconfig USDM_PANEL_FT8720_M14X_01
+	tristate "FT8720_M14X_01 DDI Panel Driver"
+	depends on USDM_PANEL_TFT_COMMON
+	default n
+	help
+		This enables FT8720_M14X_01 DDI dependent panel drivers of
+		common panel driver. say Y, if you have a panel based on
+		the FT8720_M14X_01 DDI.
+
+menuconfig USDM_PANEL_NT36672C_M14X_00
+	tristate "NT36672C_M14X_00 DDI Panel Driver"
+	depends on USDM_PANEL_TFT_COMMON
+	default n
+	help
+		This enables NT36672C_M14X_00 DDI dependent panel drivers of
+		common panel driver. say Y, if you have a panel based on
+		the NT36672C_M14X_00 DDI.
