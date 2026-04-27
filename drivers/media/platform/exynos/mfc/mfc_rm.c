@@ -1,4 +1,4 @@
-﻿/*
+/*
  * drivers/media/platform/exynos/mfc/mfc_rm.c
  *
  * Copyright (c) 2020 Samsung Electronics Co., Ltd.
