@@ -1781,7 +1781,7 @@ CONFIG_PREVENT_FIRMWARE_BUILD=y
 #
 CONFIG_FW_LOADER=y
 CONFIG_FW_LOADER_PAGED_BUF=y
-CONFIG_EXTRA_FIRMWARE="tsp_ovt/td4160_a13x_boe.bin tsp_novatek/nt36672_a14x_2ndbr_tianma.bin tsp_novatek/nt36672_a14x_2ndbr_tianma_mp.bin tsp_novatek/nt36672_a14x_tianma.bin tsp_novatek/nt36672_a14x_tianma_mp.bin"
+CONFIG_EXTRA_FIRMWARE="tsp_ovt/td4160_a13x_boe.bin.hex tsp_novatek/nt36672_a14x_2ndbr_tianma.bin.hex tsp_novatek/nt36672_a14x_2ndbr_tianma_mp.bin.hex tsp_novatek/nt36672_a14x_tianma.bin.hex tsp_novatek/nt36672_a14x_tianma_mp.bin.hex"
 CONFIG_EXTRA_FIRMWARE_DIR="firmware"
 CONFIG_FW_LOADER_USER_HELPER=y
 # CONFIG_FW_LOADER_USER_HELPER_FALLBACK is not set
