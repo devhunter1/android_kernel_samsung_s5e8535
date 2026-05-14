@@ -3824,13 +3824,11 @@ static int read_exp_features_info(struct sock *sk, struct hci_dev *hdev,
 	memset(&buf, 0, sizeof(buf));
 
 #ifdef CONFIG_BT_FEATURE_DEBUG
-	if (!hdev) {
-		flags = bt_dbg_get() ? BIT(0) : 0;
+	flags = bt_dbg_get() ? BIT(0) : 0;
 
-		memcpy(rp->features[idx].uuid, debug_uuid, 16);
-		rp->features[idx].flags = cpu_to_le32(flags);
-		idx++;
-	}
+	memcpy(rp->features[idx].uuid, debug_uuid, 16);
+	rp->features[idx].flags = cpu_to_le32(flags);
+	idx++;
 #endif
 
 	if (hdev) {
@@ -6214,6 +6212,9 @@ static int load_irks(struct sock *sk, struct hci_dev *hdev, void *cp_data,
 static bool ltk_is_valid(struct mgmt_ltk_info *key)
 {
 	if (key->initiator != 0x00 && key->initiator != 0x01)
+		return false;
+
+	if (key->enc_size > sizeof(key->val))
 		return false;
 
 	switch (key->addr.type) {
