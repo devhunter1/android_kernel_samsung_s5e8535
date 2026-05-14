@@ -2574,9 +2574,13 @@ static int wm_adsp_load_coeff(struct wm_adsp *dsp)
 	file = kzalloc(PAGE_SIZE, GFP_KERNEL);
 	if (file == NULL)
 		return -ENOMEM;
+	if (dsp->component->name_prefix)
+		snprintf(file, PAGE_SIZE, "%s-%s-%s-%s.bin", dsp->part, dsp->fwf_name,
+			wm_adsp_fw[dsp->fw].file, dsp->component->name_prefix);
+	else
+		snprintf(file, PAGE_SIZE, "%s-%s-%s.bin", dsp->part, dsp->fwf_name,
+			wm_adsp_fw[dsp->fw].file);
 
-	snprintf(file, PAGE_SIZE, "%s-%s-%s.bin", dsp->part, dsp->fwf_name,
-		 wm_adsp_fw[dsp->fw].file);
 	file[PAGE_SIZE - 1] = '\0';
 
 	ret = request_firmware(&firmware, file, dsp->dev);

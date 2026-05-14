@@ -1366,4 +1366,7 @@ config TOUCHSCREEN_ZINITIX
 	  To compile this driver as a module, choose M here: the
 	  module will be called zinitix.
 
+if EXYNOS_VARIANT1
+source "drivers/input/touchscreen/Kconfig.variant1"
+endif
 endif

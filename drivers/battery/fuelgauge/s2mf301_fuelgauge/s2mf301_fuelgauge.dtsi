@@ -1,0 +1,37 @@
+/*
+ * s2mf301 battery device tree common
+ *
+ * Copyright (c) 2022 Samsung Electronics Co., Ltd.
+ *		http://www.samsung.com
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation.
+ */
+
+&smd {
+	s2mf301_fuelgauge: s2mf301-fuelgauge {
+		status = "okay";
+		fuelgauge,capacity_full = <5000>;
+		fuelgauge,low_voltage_limit_lowtemp = <3100>;
+		fuelgauge,fuel_alert_soc = <1>;
+		fuelgauge,capacity_max = <1000>;
+		fuelgauge,capacity_max_margin = <200>;
+		fuelgauge,capacity_min = <0>;
+		fuelgauge,capacity_calculation_type = <28>;
+		fuelgauge,use_external_temp;
+#if 0
+		fuelgauge,bat_id_gpio = <
+				SEC_GPIO_REF(${bat_id_gpio_02}) 0  /* BAT_ID_2 */
+				SEC_GPIO_REF(${bat_id_gpio_01}) 0  /* BAT_ID_1 */
+				>;
+#endif
+	};
+};
+
+&smd {
+	battery {
+		battery,fgsrc_switch_name = "s2mf301-fuelgauge"; /* Fuelgauge voltage source */
+	};
+};
+

@@ -37,6 +37,7 @@
 #include "io.h"
 
 #include "debug.h"
+#include "../host/xhci-exynos-audio.h"
 
 #define DWC3_DEFAULT_AUTOSUSPEND_DELAY	5000 /* ms */
 
@@ -306,6 +307,7 @@ int dwc3_core_soft_reset(struct dwc3 *dwc)
 	u32		reg;
 	int		retries = 1000;
 
+	pr_info("%s +++\n", __func__);
 	/*
 	 * We're resetting only the device side because, if we're in host mode,
 	 * XHCI driver will reset the host block. If dwc3 was configured for
@@ -350,6 +352,8 @@ done:
 	 */
 	if (DWC3_VER_IS_WITHIN(DWC31, ANY, 180A))
 		msleep(50);
+
+	pr_info("%s ---\n", __func__);
 
 	return 0;
 }
@@ -1116,6 +1120,21 @@ static int dwc3_core_init(struct dwc3 *dwc)
 		dwc3_writel(dwc->regs, DWC3_GUCTL2, reg);
 	}
 
+	/*
+	 * When configured in HOST mode, after issuing U3/L2 exit controller
+	 * fails to send proper CRC checksum in CRC5 feild. Because of this
+	 * behaviour Transaction Error is generated, resulting in reset and
+	 * re-enumeration of usb device attached. All the termsel, xcvrsel,
+	 * opmode becomes 0 during end of resume. Enabling bit 10 of GUCTL1
+	 * will correct this problem. This option is to support certain
+	 * legacy ULPI PHYs.
+	 */
+	if (dwc->resume_hs_terminations) {
+		reg = dwc3_readl(dwc->regs, DWC3_GUCTL1);
+		reg |= DWC3_GUCTL1_RESUME_OPMODE_HS_HOST;
+		dwc3_writel(dwc->regs, DWC3_GUCTL1, reg);
+	}
+
 	if (!DWC3_VER_IS_PRIOR(DWC3, 250A)) {
 		reg = dwc3_readl(dwc->regs, DWC3_GUCTL1);
 
@@ -1140,6 +1159,14 @@ static int dwc3_core_init(struct dwc3 *dwc)
 
 		if (dwc->parkmode_disable_ss_quirk)
 			reg |= DWC3_GUCTL1_PARKMODE_DISABLE_SS;
+
+		if (dwc->parkmode_disable_hs_quirk)
+			reg |= DWC3_GUCTL1_PARKMODE_DISABLE_HS;
+
+		if (DWC3_VER_IS_WITHIN(DWC3, 290A, ANY) &&
+		    (dwc->maximum_speed == USB_SPEED_HIGH ||
+		     dwc->maximum_speed == USB_SPEED_FULL))
+			reg |= DWC3_GUCTL1_DEV_FORCE_20_CLK_FOR_30_CLK;
 
 		dwc3_writel(dwc->regs, DWC3_GUCTL1, reg);
 	}
@@ -1464,8 +1491,12 @@ static void dwc3_get_properties(struct dwc3 *dwc)
 				"snps,dis-del-phy-power-chg-quirk");
 	dwc->dis_tx_ipgap_linecheck_quirk = device_property_read_bool(dev,
 				"snps,dis-tx-ipgap-linecheck-quirk");
+	dwc->resume_hs_terminations = device_property_read_bool(dev,
+				"snps,resume-hs-terminations");
 	dwc->parkmode_disable_ss_quirk = device_property_read_bool(dev,
 				"snps,parkmode-disable-ss-quirk");
+	dwc->parkmode_disable_hs_quirk = device_property_read_bool(dev,
+				"snps,parkmode-disable-hs-quirk");
 
 	dwc->tx_de_emphasis_quirk = device_property_read_bool(dev,
 				"snps,tx_de_emphasis_quirk");
@@ -1752,9 +1783,15 @@ static int dwc3_probe(struct platform_device *pdev)
 	if (ret)
 		goto err5;
 
+	ret = xhci_exynos_audio_alloc(dev);
+	if (ret < 0)
+		dev_err(dev, "xhci_exynos_audio_alloc failed\n");
+
 	pm_runtime_put(dev);
 
 	dma_set_max_seg_size(dev, UINT_MAX);
+
+	pr_info("%s ---\n", __func__);
 
 	return 0;
 
@@ -1991,6 +2028,8 @@ static int dwc3_runtime_suspend(struct device *dev)
 	struct dwc3     *dwc = dev_get_drvdata(dev);
 	int		ret;
 
+	pr_info("%s +++\n", __func__);
+
 	if (dwc3_runtime_checks(dwc))
 		return -EBUSY;
 
@@ -1999,6 +2038,7 @@ static int dwc3_runtime_suspend(struct device *dev)
 		return ret;
 
 	device_init_wakeup(dev, true);
+	pr_info("%s ---\n", __func__);
 
 	return 0;
 }
@@ -2008,6 +2048,7 @@ static int dwc3_runtime_resume(struct device *dev)
 	struct dwc3     *dwc = dev_get_drvdata(dev);
 	int		ret;
 
+	pr_info("%s +++\n", __func__);
 	device_init_wakeup(dev, false);
 
 	ret = dwc3_resume_common(dwc, PMSG_AUTO_RESUME);
@@ -2030,6 +2071,7 @@ static int dwc3_runtime_resume(struct device *dev)
 
 	pm_runtime_mark_last_busy(dev);
 
+	pr_info("%s ---\n", __func__);
 	return 0;
 }
 
@@ -2037,6 +2079,7 @@ static int dwc3_runtime_idle(struct device *dev)
 {
 	struct dwc3     *dwc = dev_get_drvdata(dev);
 
+	pr_info("%s +++\n", __func__);
 	switch (dwc->current_dr_role) {
 	case DWC3_GCTL_PRTCAP_DEVICE:
 		if (dwc3_runtime_checks(dwc))
@@ -2051,6 +2094,7 @@ static int dwc3_runtime_idle(struct device *dev)
 	pm_runtime_mark_last_busy(dev);
 	pm_runtime_autosuspend(dev);
 
+	pr_info("%s ---\n", __func__);
 	return 0;
 }
 #endif /* CONFIG_PM */
@@ -2061,12 +2105,14 @@ static int dwc3_suspend(struct device *dev)
 	struct dwc3	*dwc = dev_get_drvdata(dev);
 	int		ret;
 
+	pr_info("%s +++\n", __func__);
 	ret = dwc3_suspend_common(dwc, PMSG_SUSPEND);
 	if (ret)
 		return ret;
 
 	pinctrl_pm_select_sleep_state(dev);
 
+	pr_info("%s ---\n", __func__);
 	return 0;
 }
 
@@ -2075,6 +2121,7 @@ static int dwc3_resume(struct device *dev)
 	struct dwc3	*dwc = dev_get_drvdata(dev);
 	int		ret;
 
+	pr_info("%s +++\n", __func__);
 	pinctrl_pm_select_default_state(dev);
 
 	ret = dwc3_resume_common(dwc, PMSG_RESUME);
@@ -2085,6 +2132,7 @@ static int dwc3_resume(struct device *dev)
 	pm_runtime_set_active(dev);
 	pm_runtime_enable(dev);
 
+	pr_info("%s ---\n", __func__);
 	return 0;
 }
 
