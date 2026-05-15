@@ -5,6 +5,12 @@ SUBLEVEL = 206
 EXTRAVERSION =
 NAME = Trick or Treat
 
+# Build flags
+export PLATFORM_VERSION=13
+export TARGET_SOC=s5e8535
+export BRANCH=android13-5.15
+export KMI_GENERATION=8
+
 # *DOCUMENTATION*
 # To see a list of typical targets execute "make help"
 # More info can be located in ./README
