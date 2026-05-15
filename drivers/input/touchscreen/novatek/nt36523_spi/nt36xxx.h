@@ -513,9 +513,6 @@ typedef enum {
 
 #define CMD_RESULT_WORD_LEN	10
 
-#define MIN(a, b) (((a) < (b)) ? (a) : (b))
-#define MAX(a, b) (((a) > (b)) ? (a) : (b))
-
 
 /* function bit combination code */
 #define EDGE_REJ_VERTICLE	1
