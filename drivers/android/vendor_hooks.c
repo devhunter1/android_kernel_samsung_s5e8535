@@ -115,6 +115,7 @@
 #include <trace/hooks/delayacct.h>
 #include <trace/hooks/tmpfile.h>
 #include <trace/hooks/fuse.h>
+#include <trace/hooks/mz.h>
 #include <trace/hooks/asoc.h>
 
 /*
@@ -569,6 +570,7 @@ EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_binder_spawn_new_thread);
 EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_binder_has_special_work_ilocked);
 EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_vmscan_kswapd_done);
 EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_should_end_madvise);
+EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_mz_exit);
 EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_should_fault_around);
 EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_do_read_fault);
 EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_filemap_read);
