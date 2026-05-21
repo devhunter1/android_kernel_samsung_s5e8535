@@ -161,3 +161,7 @@ x509.genkey
 
 # Documentation toolchain
 sphinx_*/
+
+# Samsung generated stuffs
+/include/linux/ologk.h
+/security/samsung/defex_lsm/pack_rules
