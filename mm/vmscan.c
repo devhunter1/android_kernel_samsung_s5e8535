@@ -1462,6 +1462,8 @@ retry:
 		if (!trylock_page(page))
 			goto keep;
 
+		trace_android_vh_shrink_page_lock_owner_set(page);
+
 		VM_BUG_ON_PAGE(PageActive(page), page);
 
 		nr_pages = compound_nr(page);
@@ -1587,6 +1589,7 @@ retry:
 
 			/* Case 3 above */
 			} else {
+				trace_android_vh_shrink_page_lock_owner_clear(page);
 				unlock_page(page);
 				wait_on_page_writeback(page);
 				/* then go back and try same page again */
@@ -1616,6 +1619,7 @@ retry:
 		if (do_demote_pass &&
 		    (thp_migration_supported() || !PageTransHuge(page))) {
 			list_add(&page->lru, &demote_pages);
+			trace_android_vh_shrink_page_lock_owner_clear(page);
 			unlock_page(page);
 			continue;
 		}
@@ -1795,6 +1799,7 @@ retry:
 			if (!try_to_release_page(page, sc->gfp_mask))
 				goto activate_locked;
 			if (!mapping && page_count(page) == 1) {
+				trace_android_vh_shrink_page_lock_owner_clear(page);
 				unlock_page(page);
 				if (put_page_testzero(page))
 					goto free_it;
@@ -1831,6 +1836,7 @@ retry:
 							 sc->target_mem_cgroup))
 			goto keep_locked;
 
+		trace_android_vh_shrink_page_lock_owner_clear(page);
 		unlock_page(page);
 free_it:
 		/*
@@ -1887,6 +1893,7 @@ keep_locked:
 		 * usage here, which is to clear the try-lock bit.
 		 */
 		trace_android_vh_page_trylock_get_result(page, &page_trylock_result);
+		trace_android_vh_shrink_page_lock_owner_clear(page);
 		unlock_page(page);
 keep:
 		list_add(&page->lru, &ret_pages);

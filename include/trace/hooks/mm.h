@@ -305,6 +305,17 @@ DECLARE_HOOK(android_vh_mem_cgroup_charge,
 DECLARE_HOOK(android_vh_should_fault_around,
 	TP_PROTO(struct vm_fault *vmf, bool *should_around),
 	TP_ARGS(vmf, should_around));
+
+DECLARE_HOOK(android_vh_lruvec_add_folio,
+	TP_PROTO(struct lruvec *lruvec, struct page *page, enum lru_list lru,
+		bool tail, bool *skip),
+	TP_ARGS(lruvec, page, lru, tail, skip));
+
+DECLARE_HOOK(android_vh_lruvec_del_folio,
+	TP_PROTO(struct lruvec *lruvec, struct page *page, enum lru_list lru,
+		bool *skip),
+	TP_ARGS(lruvec, page, lru, skip));
+
 DECLARE_HOOK(android_vh_do_read_fault,
 	TP_PROTO(struct vm_fault *vmf, unsigned long fault_around_bytes),
 	TP_ARGS(vmf, fault_around_bytes));
@@ -346,6 +357,9 @@ DECLARE_HOOK(android_vh_do_swap_page,
 	TP_PROTO(struct page *page, pte_t *pte, struct vm_fault *vmf,
 		swp_entry_t entry),
 	TP_ARGS(page, pte, vmf, entry));
+DECLARE_HOOK(android_vh_do_swap_page_lock_check,
+	TP_PROTO(struct page *page, struct vm_fault *vmf),
+	TP_ARGS(page, vmf));
 DECLARE_HOOK(android_vh_do_wp_page,
 	TP_PROTO(struct page *page),
 	TP_ARGS(page));
@@ -389,6 +403,15 @@ DECLARE_HOOK(android_vh_filemap_add_to_page_cache,
 DECLARE_HOOK(android_vh_init_adjust_zone_wmark,
 	TP_PROTO(struct zone *zone, u64 interval),
 	TP_ARGS(zone, interval));
+DECLARE_HOOK(android_vh_task_mem,
+	TP_PROTO(struct seq_file *m, struct mm_struct *mm),
+	TP_ARGS(m, mm));
+DECLARE_HOOK(android_vh_mm_free,
+	TP_PROTO(struct mm_struct *mm),
+	TP_ARGS(mm));
+DECLARE_HOOK(android_vh_mm_init,
+	TP_PROTO(struct mm_struct *mm),
+	TP_ARGS(mm));
 #endif /* _TRACE_HOOK_MM_H */
 
 /* This part must be outside protection */
