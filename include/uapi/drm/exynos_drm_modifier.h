@@ -12,7 +12,7 @@
 #ifndef EXYNOS_DRM_MODIFIER_H
 #define EXYNOS_DRM_MODIFIER_H
 
-#include <uapi/drm/drm_fourcc.h>
+#include <drm/drm_fourcc.h>
 
 /*
  * Set to access the secure buffer

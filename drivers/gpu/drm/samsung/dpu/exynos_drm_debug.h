@@ -15,7 +15,7 @@
 
 #include <linux/iommu.h>
 #include <drm/drm_rect.h>
-#include <exynos_drm_modifier.h>
+#include <uapi/drm/exynos_drm_modifier.h>
 #include <exynos_drm_bts.h>
 
 #include <soc/samsung/exynos/memlogger.h>

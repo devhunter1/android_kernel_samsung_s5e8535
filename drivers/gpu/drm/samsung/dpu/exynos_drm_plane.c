@@ -20,7 +20,7 @@
 #include <exynos_drm_fb.h>
 #include <exynos_drm_plane.h>
 #include <exynos_drm_format.h>
-#include <exynos_drm_modifier.h>
+#include <uapi/drm/exynos_drm_modifier.h>
 #include <exynos_drm_partial.h>
 
 static struct drm_plane_state *

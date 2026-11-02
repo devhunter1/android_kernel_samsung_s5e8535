@@ -36,7 +36,7 @@
 #include <exynos_drm_format.h>
 #include <exynos_drm_gem.h>
 #include <exynos_drm_hibernation.h>
-#include <exynos_drm_modifier.h>
+#include <uapi/drm/exynos_drm_modifier.h>
 #include <exynos_drm_writeback.h>
 #include <exynos_drm_freq_hop.h>
 #if defined(CONFIG_EXYNOS_UEVENT_RECOVERY_SOLUTION)

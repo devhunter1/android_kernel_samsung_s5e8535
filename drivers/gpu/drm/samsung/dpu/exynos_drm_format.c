@@ -13,7 +13,7 @@
 #include <drm/drm_print.h>
 #include <drm/drm_fourcc.h>
 
-#include <exynos_drm_modifier.h>
+#include <uapi/drm/exynos_drm_modifier.h>
 #include <exynos_drm_format.h>
 #include <regs-dpp.h>
 #include <dpp_cal.h>
